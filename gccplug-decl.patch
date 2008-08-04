@@ -1,0 +1,71 @@
+diff -urp gcc-4.3.0-20080428-origplug/gcc/c-decl.c gcc-4.3.0-20080428/gcc/c-decl.c
+--- gcc-4.3.0-20080428-origplug/gcc/c-decl.c	2008-07-10 14:19:27.000000000 +0200
++++ gcc-4.3.0-20080428/gcc/c-decl.c	2008-07-10 23:00:44.000000000 +0200
+@@ -3559,6 +3560,7 @@ finish_decl (tree decl, tree init, tree 
+ 	       But at end of compilation, do output code for them.  */
+ 	    DECL_DEFER_OUTPUT (decl) = 1;
+ 	  rest_of_decl_compilation (decl, true, 0);
++	  plugin_finish_decl (decl);
+ 	}
+       else
+ 	{
+diff -urp gcc-4.3.0-20080428-origplug/gcc/tree-plugin-pass.c gcc-4.3.0-20080428/gcc/tree-plugin-pass.c
+--- gcc-4.3.0-20080428-origplug/gcc/tree-plugin-pass.c	2008-07-10 14:21:00.000000000 +0200
++++ gcc-4.3.0-20080428/gcc/tree-plugin-pass.c	2008-07-10 23:03:55.000000000 +0200
+@@ -27,6 +27,7 @@ static const char * str_cp_pre_genericiz
+ static const char * str_plugin_post_parse = "gcc_plugin_post_parse";
+ static const char * str_plugin_pass = "gcc_plugin_pass";
+ static const char * str_plugin_finish_struct = "gcc_plugin_finish_struct";
++static const char * str_plugin_finish_decl = "gcc_plugin_finish_decl";
+ static const char * str_plugin_finish = "gcc_plugin_finish";
+ 
+ /* handle to the entry point */
+@@ -40,6 +41,7 @@ static gcc_plugin_func fptr_plugin_post_
+ static gcc_plugin_func fptr_plugin_pass = NULL;
+ static gcc_plugin_func fptr_plugin_finish = NULL;
+ static gcc_plugin_cp_pre_genericize fptr_plugin_finish_struct = NULL;
++static gcc_plugin_cp_pre_genericize fptr_plugin_finish_decl = NULL;
+ 
+ static void init(void);
+ 
+@@ -60,6 +62,13 @@ void plugin_finish_struct (tree t) {
+     fptr_plugin_finish_struct (t);
+ }
+ 
++void plugin_finish_decl (tree t) {
++  if (!plugin_name) return;
++  init ();
++  if (fptr_plugin_finish_decl)
++    fptr_plugin_finish_decl (t);
++}
++
+ void plugin_finish (void) {
+   if (!plugin_name) return;
+   init ();
+@@ -116,6 +125,7 @@ static void init(void) {
+     gcc_plugin_init fptr_init;
+     gcc_plugin_cp_pre_genericize fptr_pre_genericize; 
+     gcc_plugin_cp_pre_genericize fptr_finish_struct; 
++    gcc_plugin_cp_pre_genericize fptr_finish_decl; 
+     gcc_plugin_func fptr_plugin_post_parse;
+     gcc_plugin_func fptr_plugin_pass;
+     gcc_plugin_func fptr_plugin_finish;
+@@ -143,6 +153,8 @@ static void init(void) {
+   fptr_plugin_pass = u.fptr_plugin_pass;
+   u.vptr = dlsym(handle, str_plugin_finish_struct);
+   fptr_plugin_finish_struct = u.fptr_finish_struct;
++  u.vptr = dlsym(handle, str_plugin_finish_decl);
++  fptr_plugin_finish_decl = u.fptr_finish_decl;
+   u.vptr = dlsym(handle, str_plugin_finish);
+   fptr_plugin_finish = u.fptr_plugin_finish;
+ 
+diff -urp gcc-4.3.0-20080428-origplug/gcc/tree-plugin-pass.h gcc-4.3.0-20080428/gcc/tree-plugin-pass.h
+--- gcc-4.3.0-20080428-origplug/gcc/tree-plugin-pass.h	2008-07-10 14:21:00.000000000 +0200
++++ gcc-4.3.0-20080428/gcc/tree-plugin-pass.h	2008-07-06 20:30:40.000000000 +0200
+@@ -23,5 +23,6 @@ along with GCC; see the file COPYING3.  
+ extern void plugin_go (void);
+ extern void plugin_cp_pre_genericize (tree);
+ extern void plugin_finish_struct (tree);
++extern void plugin_finish_decl (tree);
+ extern void plugin_finish (void);
+ #endif /* ! GCC_TREE_PLUGIN_PASS_H */
