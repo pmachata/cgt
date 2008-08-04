@@ -1,0 +1,1 @@
+unsigned gen_id();
