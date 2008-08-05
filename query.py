@@ -329,3 +329,68 @@ trcalled_by = build_rp(SymbolSet.trcallers)
 
 calls_itself = build_srp(SymbolSet.callees)()
 tcalls_itself = build_srp(SymbolSet.tcallees)()
+
+class Length:
+    def gen(self, fun):
+        class LengthPattern(FlagPattern):
+            def __call__(self, cg, path):
+                return fun(len(path))
+        return LengthPattern()
+
+    def __ge__(self, len):
+        return self.gen(lambda a: a >= len)
+
+    def __gt__(self, len):
+        return self.gen(lambda a: a > len)
+
+    def __le__(self, len):
+        return self.gen(lambda a: a <= len)
+
+    def __lt__(self, len):
+        return self.gen(lambda a: a < len)
+
+    def __eq__(self, len):
+        return self.gen(lambda a: a == len)
+
+    def __ne__(self, len):
+        return self.gen(lambda a: a != len)
+
+    #def __contains__(self, range):
+    #    return self.get(lambda a: a in range)
+
+    # We'd like to be able to say [length in range(2, 4)], but that's
+    # not possible... easily anyway.  We can't overload __contains__
+    # in xrange and tuple, overloading in length doesn't help,
+    # [range(2,3) in length] makes no sense.
+
+    # We'd also like to be able to say e.g. length > 4 and length < 6,
+    # but "and" can't be overloaded in Python.  So the user has to say
+    # (length > 4) & (length < 6), which is inconvenient ("&" doesn't
+    # have the right priority).
+
+length = Length()
+
+class contains(FlagPattern):
+    def __init__(self, what):
+        self.pat = re.compile("^" + what + "$")
+    def __call__(self, cg, path):
+        for sym in path:
+            if self.pat.search(sym.name):
+                return True
+        return False
+
+class ends_with(contains):
+    def __init__(self, what):
+        contains.__init__(self, what)
+    def __call__(self, cg, path):
+        if len(path) > 0 and self.pat.search(path[-1].name):
+                return True
+        return False
+
+class starts_with(contains):
+    def __init__(self, what):
+        contains.__init__(self, what)
+    def __call__(self, cg, path):
+        if len(path) > 0 and self.pat.search(path[0].name):
+                return True
+        return False
