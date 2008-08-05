@@ -137,7 +137,7 @@ class SymbolSet (object):
         for a in self:
             for b in dest:
                 ret += fpaths(self.parent, a, b)
-        return list(set(tuple(i) for i in ret))
+        return PathSet(self.parent, list(set(tuple(i) for i in ret)))
 
 class CG (SymbolSet):
     def __init__(self, file):
@@ -145,6 +145,88 @@ class CG (SymbolSet):
         self.cg.include(file)
         self.cg.compute_callers()
         SymbolSet.__init__(self, self, self.cg.all_program_symbols())
+
+class PathSet (object):
+    def __init__(self, parent, paths):
+        self.parent = parent
+        self.paths = paths
+
+    def __iter__(self):
+        return self.paths.__iter__()
+
+    def unique(self):
+        d={}
+        for p in self.paths:
+            x = (p[0], p[-1])
+            if (x not in d) or (len(d[x]) > len(p)):
+                d[x] = p
+        return PathSet(self.parent, d.values())
+
+    def __getitem__(self, pattern):
+        if callable(pattern) and pattern != all:
+            p = []
+            for path in self.paths:
+                if pattern(self.parent, path):
+                    p.append(path)
+            return PathSet(self.parent, p)
+
+        else:
+            def compile_pattern(pat):
+                if pat == all or pat == None:
+                    pat = ".*"
+                return re.compile("^" + pat + "$")
+
+            # paths[...] -> SymbolSet containing all symbols in all paths
+            if pattern == Ellipsis:
+                return self[".*"]
+
+            # paths["main.*"] -> SymbolSet containing just symbols matching "main.*"
+            if type(pattern) != slice:
+                pattern = compile_pattern(pattern)
+                sset = set()
+                for path in self.paths:
+                    for sym in path:
+                        if pattern.search(sym.name):
+                            sset.add(sym)
+                return SymbolSet(sset)
+
+            # paths["main":] -> subpaths from "main" on
+            # paths["main":"fun"] -> subpaths between "main" and "fun", "fun" is not included
+            # paths[1:4], paths[:-1] -> traditional slice behavior
+            def get_index_function(pattern):
+                if pattern == all or pattern == None:
+                    pattern = -1
+
+                try:
+                    return lambda p: pattern + 0
+                except TypeError:
+                    pattern = compile_pattern(pattern);
+                    def find_first_in_path(path):
+                        for i, sym in enumerate(path):
+                            if pattern.search(sym.name):
+                                return i
+                        raise ValueError("not in list")
+                    return find_first_in_path
+
+            start_index = get_index_function(pattern.start)
+            end_index = get_index_function(pattern.end)
+
+            paths = []
+            for path in paths:
+                paths.append(path[start_index(path):end_index(path)])
+            return PathSet(self.parent, paths)
+
+    def __repr__(self):
+        return self.paths.__repr__()
+
+    def __add__(self, other):
+        return PathSet(self.parent, list(set(self.paths).union(set(other.paths))))
+
+    def __mul__(self, other):
+        return PathSet(self.parent, list(set(self.paths).intersection(set(other.paths))))
+
+    def __sub__(self, other):
+        return PathSet(self.parent, list(set(self.paths) - set(other.paths)))
 
 callees = SymbolSet.callees
 callers = SymbolSet.callers
