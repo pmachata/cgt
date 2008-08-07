@@ -52,7 +52,7 @@ main(int argc, char **argv)
 
   if (optind >= argc)
     {
-      std::cerr << "Need input files." << std::endl;
+      std::cerr << argv[0] << ": need input files." << std::endl;
       return 1;
     }
 

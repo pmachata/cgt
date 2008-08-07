@@ -38,6 +38,22 @@ while args != []:
             output_file = arg[2:]
         else:
             output_file = args.pop()
+    elif arg[:4] == '-Wl,':
+        ldargs = arg.split(",")[1:][::-1]
+        while ldargs != []:
+            ldarg = ldargs.pop()
+            if ldarg[0] != '-':
+                input_files.append(ldarg)
+                if os.path.splitext(ldarg)[1] not in (".a", ".so"):
+                    sys.stderr.write(("%s: unexpected linker input file "
+                                      + "name `%s'\n") % (sys.argv[0], ldarg))
+            # Command line options with argument that needs to be
+            # ignored, otherwise it might end up being recognized as
+            # file name.
+            elif ldarg in ("--version-script", "--soname",
+                           "-init", "-fini", "-z",
+                           "-rpath", "-rpath-link"):
+                ldargs.pop()
 
 source_files = []
 object_files = []
@@ -51,11 +67,16 @@ for i in input_files:
     if output_file and nolink:
         object_files.append(output_file + ".cg")
     else:
-        out = i[:ix] + ".o.cg"
-        try:
-            out = out[out.rindex("/") + 1:]
-        except ValueError:
-            pass
+        # For libraries, input file is actually also object file...
+        if os.path.splitext(i)[1] not in (".a", ".so", ".o"):
+            out = i[:ix] + ".o.cg"
+            try:
+                out = out[out.rindex("/") + 1:]
+            except ValueError:
+                pass
+        else:
+            out = i + ".cg"
+
         object_files.append(out)
 
 encoded = " ".join(str(len(a)) + ":" + a + "=" + str(len(b)) + ":" + b
@@ -84,6 +105,7 @@ if status == 0 and not nolink:
     if verbose:
         sys.stderr.write("cg linker cmdline: " + str(cmdline) + "\n")
 
+    sys.stderr.write("Callgraph will be saved in `%s'\n" % (output_file + ".cg"))
     pid = os.fork()
     if pid == 0:
         os.execvp(cmdline[0], cmdline)
