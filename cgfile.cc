@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
+
 #include <boost/lambda/lambda.hpp>
 
 cgfile::cgfile()
@@ -51,6 +53,7 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule)
 {
   clean();
   m_id_assignments[psym_ptrcall()->get_id()] = psym_ptrcall();
+  std::vector<char const*> to_be_included;
 
   FileSymbol *fsym = NULL;
   q::Quark filename = NULL;
@@ -70,9 +73,14 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule)
       tok_vect::size_type tokens_size = tokens.size();
       char const* strp = tokens[0];
 
-      if (strp[0] == 'F' && strp[1] == 0)
+      if (!isdigit(strp[0]) && strp[1] == 0)
 	{
-	  filename = q::intern(tokens[1]);
+	  if (strp[0] == 'F')
+	    filename = q::intern(tokens[1]);
+	  else if (strp[0] == 'I')
+	    to_be_included.push_back(tokens[1]);
+	  else
+	    std::cerr << "Invalid command `" << strp << "'" << std::endl;
 	  continue;
 	}
 
@@ -320,6 +328,30 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule)
   for (id_psym_map::const_iterator it = m_id_assignments.begin();
        it != m_id_assignments.end(); ++it)
     it->second->resolve_callee_aliases();
+
+  // Finally process "I" directives that we've seen in this file.
+  // This is done in extra step at the end, so that it is not a
+  // problem to reuse the global state (that's erased in `clean').
+  tok_vect_vect include_file_tokens;
+  for (std::vector<char const*>::const_iterator it = to_be_included.begin();
+       it != to_be_included.end(); ++it)
+    {
+      char const* incmodule = *it;
+      if (*incmodule != '/')
+	if (char const* slash = std::strrchr(curmodule, '/'))
+	  {
+	    size_t init_path_len = slash - curmodule + 1;
+	    size_t buflen = init_path_len + strlen(incmodule) + 1;
+	    char *buf = static_cast<char *>(alloca(buflen));
+	    stpcpy(stpncpy(buf, curmodule, init_path_len), incmodule);
+	    incmodule = buf;
+	  }
+
+      fd_reader *rd = open_or_die(incmodule);
+      tokenize_file(rd, include_file_tokens);
+      include(include_file_tokens, incmodule);
+      delete rd;
+    }
 
   clean();
 }

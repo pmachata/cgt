@@ -1,0 +1,45 @@
+#!/usr/bin/env python
+
+# Just a stupid wrapper that assumes traditional
+#   ar cru libelf.a elf_version.o elf_hash.o elf_error.o ...
+
+import sys
+import os
+import os.path
+
+cmdline = ["ar"] + sys.argv[1:]
+outfile = sys.argv[2]
+infiles = sys.argv[3:]
+cgfiles = [x + ".cg" for x in infiles]
+
+if os.path.splitext(outfile)[1] != ".a":
+    sys.stderr.write("unexpected: output file called `%s' (ext != \".a\")\n" % outfile)
+    sys.exit(1)
+for infile in infiles:
+    if os.path.splitext(infile)[1] not in (".o", ".os"):
+        sys.stderr.write("unexpected: input file called `%s' (ext != \".o\")\n" % infile)
+        sys.exit(1)
+
+for cgfile in cgfiles:
+    try:
+        f = open(cgfile)
+        f.close()
+    except IOError:
+        sys.stderr.write("can't find CG file `%s'." % cgfile)
+        sys.exit(1)
+
+pid = os.fork()
+if pid == 0:
+    os.execvp(cmdline[0], cmdline)
+pid, status = os.waitpid(pid, 0)
+
+if "t" not in sys.argv[1]:
+    sys.stderr.write("Callgraph will be saved in `%s'\n" % (outfile + ".cg"))
+
+    if status == 0:
+        f = open(outfile + ".cg", "w")
+        for infile in infiles:
+            f.write("I %s\n" % (infile + ".cg"))
+        f.close()
+
+sys.exit(status)
