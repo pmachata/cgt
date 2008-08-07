@@ -195,10 +195,11 @@ class PathSet (object):
             # paths[1:4], paths[:-1] -> traditional slice behavior
             def get_index_function(pattern):
                 if pattern == all or pattern == None:
-                    pattern = -1
+                    return lambda p: None
 
                 try:
-                    return lambda p: pattern + 0
+                    pattern + 0
+                    return lambda p: pattern
                 except TypeError:
                     pattern = compile_pattern(pattern);
                     def find_first_in_path(path):
@@ -209,11 +210,13 @@ class PathSet (object):
                     return find_first_in_path
 
             start_index = get_index_function(pattern.start)
-            end_index = get_index_function(pattern.end)
+            end_index = get_index_function(pattern.stop)
 
             paths = []
-            for path in paths:
-                paths.append(path[start_index(path):end_index(path)])
+            for path in self.paths:
+                si = start_index(path)
+                ei = end_index(path)
+                paths.append(path[si:ei])
             return PathSet(self.parent, paths)
 
     def __repr__(self):
