@@ -1,0 +1,94 @@
+#!/usr/bin/env python
+import sys
+import os
+import os.path
+
+input_files = []
+output_file = None
+nolink = False
+
+cccommand = None
+ccplugin = None
+verbose = False
+command_line_args = sys.argv[1:]
+while command_line_args != [] \
+        and command_line_args[0][:5] == "--cg:":
+    directive,arg = command_line_args[0].split("=")
+    command_line_args = command_line_args[1:]
+    if directive == "--cg:cc":
+        cccommand = arg
+    elif directive == "--cg:plug":
+        ccplugin = arg
+    elif directive == "--cg:verbose":
+        verbose = int(arg) != 0
+    else:
+        sys.stderr.write("invalid cgcc directive %s\n" % directive)
+if cccommand == None:
+    cccommand = "gcc"
+
+args = command_line_args[::-1]
+while args != []:
+    arg = args.pop()
+    if arg[0] != '-':
+        input_files.append(arg)
+    elif arg == '-c':
+        nolink = True
+    elif arg[:2] == '-o':
+        if len(arg) > 2:
+            output_file = arg[2:]
+        else:
+            output_file = args.pop()
+
+source_files = []
+object_files = []
+for i in input_files:
+    try:
+        ix = i.rindex(".")
+    except ValueError:
+        # e.g. gcc -x c -c file-without-extension
+        ix = len(i)
+
+    if output_file and nolink:
+        object_files.append(output_file + ".cg")
+    else:
+        out = i[:ix] + ".o.cg"
+        try:
+            out = out[out.rindex("/") + 1:]
+        except ValueError:
+            pass
+        object_files.append(out)
+
+encoded = " ".join(str(len(a)) + ":" + a + "=" + str(len(b)) + ":" + b
+                   for a,b in zip(input_files, object_files))
+
+cmdline = [cccommand]
+cmdline += command_line_args
+if ccplugin:
+    cmdline.append("-fplugin=" + ccplugin)
+    cmdline.append("-fplugin-arg=" + encoded)
+if verbose:
+    sys.stderr.write("compiler cmdline: " + str(cmdline) + "\n")
+
+pid = os.fork()
+if pid == 0:
+    os.execvp(cmdline[0], cmdline)
+pid, status = os.waitpid(pid, 0)
+if verbose:
+    sys.stderr.write("compiler done, status %d\n" % status)
+
+if status == 0 and not nolink:
+    if output_file == None:
+        output_file = "a.out"
+    cmdline = [os.path.split(sys.argv[0])[0] + os.sep + "linker",
+               "-o", output_file + ".cg"] + object_files
+    if verbose:
+        sys.stderr.write("cg linker cmdline: " + str(cmdline) + "\n")
+
+    pid = os.fork()
+    if pid == 0:
+        os.execvp(cmdline[0], cmdline)
+    pid, status = os.waitpid(pid, 0)
+    if verbose:
+        sys.stderr.write("cg linker done, status %d\n" % status)
+
+sys.exit(status)

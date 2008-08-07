@@ -1,7 +1,7 @@
 /*
   LC_ALL=C gcc -std=c99 -Wall -fpic -shared plug.c -o plug.so -iquote	\
-  gcc-4.3.0-20080428/libcpp/include -iquote gcc-4.3.0-20080428/gcc/	\
-  -iquote gcc-build/gcc -I gcc-4.3.0-20080428/include
+  $HOME/gcc-4.3.0-20080428/libcpp/include -iquote $HOME/gcc-4.3.0-20080428/gcc/ \
+  -iquote $HOME/gcc-build/gcc -I $HOME/gcc-4.3.0-20080428/include
 */
 
 #include "config.h"
@@ -88,21 +88,84 @@ gcc_plugin_init (const char *file, const char *arg, char **prior_pass)
   fprintf(stderr, "gcc_plugin_init\n");
 #endif
 
-  static char const ext[] = ".cg";
   char const* in = main_input_filename;
-  char const* period = strrchr (in, '.');
-  char const* slash = strrchr (in, '/');
-  char *filename = alloca (strlen (in) + sizeof (ext)); // ext includes traling zero
+  char const* filename = NULL;
 
-  if (period == NULL || slash > period
-      || strcmp (period, ext) == 0)
-    strcpy (stpcpy (filename, in), ext);
-  else
-    strcpy (stpncpy (filename, in, period - in), ext);
+  /* If we've gotten an arg, it describes mapping between input file
+     names and output file names (where the graph should be
+     stored).  */
+  if (arg && *arg)
+    {
+      size_t in_len = strlen (in);
+      size_t remaining = strlen (arg);
+      bool gotcha = false;
 
+      while (remaining > 1)
+	{
+	  char *colon = NULL;
+	  size_t comp_len = strtoul (arg, &colon, 10);
+	  if (colon == arg || *colon != ':'
+	      || comp_len == 0 || comp_len >= remaining
+	      || colon[comp_len + 1] != '=')
+	    {
+	    error:
+	      fprintf(stderr, "warning: invalid plugin arg\n");
+	      break;
+	    }
+
+	  bool skipping = comp_len != in_len;
+	  colon++;
+	  if (!skipping
+	      && strncmp (colon, in, comp_len) == 0)
+	    gotcha = true;
+
+	  char *narg = colon + comp_len + 1;
+	  remaining -= narg - arg;
+	  arg = narg;
+
+	  comp_len = strtoul (arg, &colon, 10);
+	  if (colon == arg || *colon != ':'
+	      || comp_len == 0 || comp_len >= remaining
+	      || (colon[comp_len + 1] != ' '
+		  && colon[comp_len + 1] != 0))
+	    goto error;
+
+	  colon++;
+	  if (!skipping)
+	    {
+	      char *buf = alloca (comp_len + 1);
+	      strncpy (buf, colon, comp_len);
+	      buf[comp_len] = 0;
+	      filename = buf;
+	      break;
+	    }
+
+	  narg = colon + comp_len + 1;
+	  remaining -= narg - arg;
+	  arg = narg;
+	}
+    }
+
+  if (filename == NULL)
+    {
+      static char const ext[] = ".cg";
+      char const* period = strrchr (in, '.');
+      char const* slash = strrchr (in, '/');
+      char *buf = alloca (strlen (in) + sizeof (ext)); // ext includes traling zero
+
+      if (period == NULL || slash > period
+	  || strcmp (period, ext) == 0)
+	strcpy (stpcpy (buf, in), ext);
+      else
+	strcpy (stpncpy (buf, in, period - in), ext);
+
+      filename = buf;
+    }
+
+  fprintf (stderr, "Callgraph will be saved in `%s'\n", filename);
   output = fopen (filename, "w");
-  fprintf (output, "F %s\n", main_input_filename);
-  last_file = main_input_filename;
+  fprintf (output, "F %s\n", in);
+  last_file = in;
 
 #ifdef DEBUG
   fprintf(stderr, "builtins...\n");
