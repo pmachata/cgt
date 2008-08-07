@@ -165,6 +165,16 @@ class PathSet (object):
                 d[x] = p
         return PathSet(self.parent, d.values())
 
+    def list(self, header = None):
+        pfx = ""
+        if header:
+            print "== %s:" % header
+            pfx = "  "
+        for i in self:
+            print "%s%s" % (pfx, i)
+        if header:
+            print
+
     def __getitem__(self, pattern):
         if callable(pattern) and pattern != all:
             p = []
