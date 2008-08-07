@@ -133,6 +133,9 @@ class SymbolSet (object):
                         found.append(newpath)
             return found
 
+        if type(dest) == str or callable(dest):
+            dest = self.parent[dest]
+
         ret = []
         for a in self:
             for b in dest:
