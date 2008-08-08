@@ -39,7 +39,8 @@ namespace {
 fd_reader::fd_reader(FD const& fd)
   : m_cursor(0)
   , m_size(::getsize(fd))
-  , m_buffer(static_cast<char*>(mmap(NULL, m_size, PROT_READ|PROT_WRITE,
+  , m_buffer(m_size == 0 ? NULL
+	     : static_cast<char*>(mmap(NULL, m_size, PROT_READ|PROT_WRITE,
 				       MAP_PRIVATE, fd, 0)))
 {
   if (unlikely (m_buffer == MAP_FAILED))
