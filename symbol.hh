@@ -74,7 +74,6 @@ public:
   }
 
   void add_callee(ProgramSymbol * sym) {
-    sym->set_used();
     m_callees.insert(sym);
   }
 

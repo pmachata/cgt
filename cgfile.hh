@@ -27,6 +27,10 @@ public:
   // this function to have callers re/computed.
   void compute_callers();
 
+  // `include' doesn't compute used symbols, everything is "unused" by
+  // default.
+  void compute_used();
+
 private:
   void clean();
 

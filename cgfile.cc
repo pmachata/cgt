@@ -253,8 +253,6 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule)
 
       m_id_assignments[id] = psym;
       m_name_assignments[name] = psym;
-      if (!is_decl)
-	psym->set_used();
 
       // This is a function with body.  Look through the call list.
       if (!is_decl && !is_var)
@@ -386,5 +384,22 @@ cgfile::compute_callers()
       for (psym_set::iterator jt = callees.begin();
 	   jt != callees.end(); ++jt)
 	(*jt)->add_caller(*it);
+    }
+}
+
+void
+cgfile::compute_used()
+{
+  for (psym_vect::iterator it = m_all_program_symbols.begin();
+       it != m_all_program_symbols.end(); ++it)
+    {
+      ProgramSymbol *psym = *it;
+      if (!psym->is_decl())
+	psym->set_used();
+
+      psym_set const& callees = (*it)->get_callees();
+      for (psym_set::iterator jt = callees.begin();
+	   jt != callees.end(); ++jt)
+	(*jt)->set_used();
     }
 }

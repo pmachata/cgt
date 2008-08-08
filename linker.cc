@@ -64,6 +64,7 @@ main(int argc, char **argv)
   cgfile f;
   link(argv + optind, argc - optind, f);
   f.sort_psyms_by_file();
+  f.compute_used();
 
   q::Quark path = NULL;
   for (psym_vect::const_iterator it = f.all_program_symbols.begin();
