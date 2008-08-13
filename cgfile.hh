@@ -1,9 +1,10 @@
 #ifndef cgt_cgfile_hh_guard
 #define cgt_cgfile_hh_guard
 
-#include "symbol.hh"
+#include "symbol.ii"
 #include "types.hh"
 #include "reader.hh"
+#include "quark.hh"
 
 class cgfile {
   typedef std::MAP<unsigned, ProgramSymbol*> id_psym_map;
@@ -30,6 +31,8 @@ public:
   // `include' doesn't compute used symbols, everything is "unused" by
   // default.
   void compute_used();
+
+  psym_vect const& get_symbols() const { return m_all_program_symbols; }
 
 private:
   void clean();

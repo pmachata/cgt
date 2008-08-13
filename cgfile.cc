@@ -1,4 +1,5 @@
 #include "cgfile.hh"
+#include "symbol.hh"
 
 #include <algorithm>
 #include <cstdlib>

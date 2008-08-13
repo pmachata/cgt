@@ -3,20 +3,11 @@
 
 #include "id.hh"
 #include "quark.hh"
-#include "types.hh"
+#include "symbol.ii"
 
 #include <cassert>
 #include <iosfwd>
-#include <set>
 #include <string>
-#include <vector>
-
-struct FileSymbol;
-struct ProgramSymbol;
-
-typedef std::set<ProgramSymbol *> psym_set;
-typedef std::SET<ProgramSymbol *> psym_SET;
-typedef std::vector<ProgramSymbol *> psym_vect;
 
 struct Symbol {
   Symbol(q::Quark name)
@@ -44,78 +35,24 @@ struct FileSymbol
 class ProgramSymbol
   : public Symbol
 {
-  void check_have_callers() const {
-    if (m_callers == NULL)
-      m_callers = new psym_set();
-  }
+  void check_have_callers() const;
 
 public:
-  ProgramSymbol(q::Quark name, FileSymbol *file, unsigned line)
-    : Symbol(name)
-    , m_id(gen_id())
-    , m_file(file)
-    , m_path(NULL)
-    , m_line_number(line)
-    , m_is_static(false)
-    , m_is_decl(false)
-    , m_is_var(false)
-    , m_used(false)
-    , m_forward_to(NULL)
-    , m_callers(NULL)
-  {
-  }
+  ProgramSymbol(q::Quark name, FileSymbol *file, unsigned line);
+  ~ProgramSymbol();
 
-  ~ProgramSymbol() {
-    clear_callers();
-  }
+  unsigned get_id() const { return m_id; }
 
-  unsigned get_id() const {
-    return m_id;
-  }
+  void add_callee(ProgramSymbol * sym);
+  psym_set const& get_callees() const { return m_callees; }
+  void resolve_callee_aliases();
 
-  void add_callee(ProgramSymbol * sym) {
-    m_callees.insert(sym);
-  }
+  void clear_callers();
+  void add_caller(ProgramSymbol * sym);
+  psym_set const& get_callers() const;
 
-  psym_set const& get_callees() const {
-    return m_callees;
-  }
-
-  void clear_callers() {
-    delete m_callers;
-  }
-
-  void add_caller(ProgramSymbol * sym) {
-    check_have_callers();
-    m_callers->insert(sym);
-  }
-
-  psym_set const& get_callers() const {
-    check_have_callers();
-    return *m_callers;
-  }
-
-  void resolve_callee_aliases() {
-    psym_set nc;
-    for (psym_set::iterator it = m_callees.begin();
-	 it != m_callees.end(); ++it)
-      {
-	ProgramSymbol *callee = *it;
-	while (callee->m_forward_to != NULL)
-	  callee = callee->m_forward_to;
-	nc.insert(callee);
-      }
-    m_callees = nc;
-  }
-
-  void set_forward_to(ProgramSymbol *other) {
-    assert (m_forward_to == NULL);
-    m_forward_to = other;
-  }
-
-  bool is_forwarder() const {
-    return m_forward_to != NULL;
-  }
+  void set_forward_to(ProgramSymbol *other);
+  bool is_forwarder() const { return m_forward_to != NULL; }
 
   void set_static(bool is_static) { m_is_static = is_static; }
   void set_decl(bool is_decl) { m_is_decl = is_decl; }
@@ -135,9 +72,7 @@ public:
   FileSymbol *get_file() const { return m_file; }
 
   void set_path(q::Quark path) { m_path = path; }
-  std::string const& get_path() const {
-    return *q::to_string(m_path);
-  }
+  std::string const& get_path() const { return *q::to_string(m_path); }
   q::Quark get_qpath() const { return m_path; }
 
   void dump(std::ostream & o) const;
