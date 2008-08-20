@@ -42,4 +42,4 @@ if "t" not in sys.argv[1]:
             f.write("I %s\n" % (infile + ".cg"))
         f.close()
 
-sys.exit(status)
+sys.exit(os.WEXITSTATUS(status))

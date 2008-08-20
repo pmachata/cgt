@@ -95,7 +95,7 @@ if pid == 0:
     os.execvp(cmdline[0], cmdline)
 pid, status = os.waitpid(pid, 0)
 if verbose:
-    sys.stderr.write("compiler done, status %d\n" % status)
+    sys.stderr.write("compiler done, status %d, %d\n" % (status, os.WEXITSTATUS(status)))
 
 if status == 0 and not nolink:
     if output_file == None:
@@ -113,4 +113,4 @@ if status == 0 and not nolink:
     if verbose:
         sys.stderr.write("cg linker done, status %d\n" % status)
 
-sys.exit(status)
+sys.exit(os.WEXITSTATUS(status))
