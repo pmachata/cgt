@@ -132,6 +132,8 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule)
 	    fsym = it->second;
 	  else
 	    {
+	      if (filename == NULL)
+		filename = q::intern("");
 	      fsym = new FileSymbol(filename);
 	      m_file_symbols[filename] = fsym;
 	    }

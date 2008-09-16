@@ -34,7 +34,7 @@ if pid == 0:
 pid, status = os.waitpid(pid, 0)
 
 if "t" not in sys.argv[1]:
-    sys.stderr.write("Callgraph will be saved in `%s'\n" % (outfile + ".cg"))
+    sys.stderr.write("Callgraph will be saved to `%s'\n" % (outfile + ".cg"))
 
     if status == 0:
         f = open(outfile + ".cg", "w")

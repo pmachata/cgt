@@ -71,8 +71,8 @@ main(int argc, char **argv)
        it != f.all_program_symbols.end(); ++it)
     {
       ProgramSymbol * psym = *it;
-      if (psym->is_forwarder() || !psym->is_used())
-	continue;
+//       if (psym->is_forwarder() || !psym->is_used())
+// 	continue;
 
       q::Quark psym_path = psym->get_qpath();
       if (psym_path != path)

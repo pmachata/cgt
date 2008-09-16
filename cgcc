@@ -97,7 +97,7 @@ pid, status = os.waitpid(pid, 0)
 if verbose:
     sys.stderr.write("compiler done, status %d, %d\n" % (status, os.WEXITSTATUS(status)))
 
-if status == 0 and not nolink:
+if status == 0 and not nolink and object_files:
     if output_file == None:
         output_file = "a.out"
     cmdline = [os.path.split(sys.argv[0])[0] + os.sep + "linker",
@@ -105,7 +105,7 @@ if status == 0 and not nolink:
     if verbose:
         sys.stderr.write("cg linker cmdline: " + str(cmdline) + "\n")
 
-    sys.stderr.write("Callgraph will be saved in `%s'\n" % (output_file + ".cg"))
+    sys.stderr.write("Callgraph will be saved to `%s'\n" % (output_file + ".cg"))
     pid = os.fork()
     if pid == 0:
         os.execvp(cmdline[0], cmdline)

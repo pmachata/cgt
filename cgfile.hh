@@ -46,6 +46,8 @@ private:
   /// adjusted to become a definition.
   name_psym_map m_global_symbols;
 
+  // - v - - - - - - - - - - - - - - - - - - - - - - - - - - - - - v -
+
   // The variables that follow conceptually belong to `include'
   // routine.  They are instance variables to speed processing up:
   // memory for containers doesn't have to be free'd/malloc'd/resized
@@ -65,6 +67,8 @@ private:
   // Mapping ID -> callers.
   typedef std::vector<std::pair<unsigned, ProgramSymbol*> > pending_callees_t;
   pending_callees_t m_pending_callees;
+
+  // - ^ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ^ -
 
   friend class cgfile_binder;
 };
