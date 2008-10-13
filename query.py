@@ -1,6 +1,11 @@
 import cgt
 import re
 
+def compile_pattern(pat):
+    if pat == all or pat == None:
+        pat = ".*"
+    return re.compile("^" + pat + "$")
+
 class SymbolSet (object):
     def __init__(self, parent, contains):
         """Parent is supposed to be the ultimate "whole-world"
@@ -143,9 +148,10 @@ class SymbolSet (object):
         return PathSet(self.parent, list(set(tuple(i) for i in ret)))
 
 class CG (SymbolSet):
-    def __init__(self, file):
+    def __init__(self, *files):
         self.cg = cgt.cgfile() # keep the reference
-        self.cg.include(file)
+        for file in files:
+            self.cg.include(file)
         self.cg.compute_callers()
         SymbolSet.__init__(self, self, self.cg.all_program_symbols())
 
@@ -184,11 +190,6 @@ class PathSet (object):
             return PathSet(self.parent, p)
 
         else:
-            def compile_pattern(pat):
-                if pat == all or pat == None:
-                    pat = ".*"
-                return re.compile("^" + pat + "$")
-
             # paths[...] -> SymbolSet containing all symbols in all paths
             if pattern == Ellipsis:
                 return self[".*"]
@@ -330,11 +331,40 @@ def build_srp (func):
             return len(func(SymbolSet(None, [symbol])) * SymbolSet(None, [symbol])) > 0
     return SelfRelationshipPattern
 
+class String:
+    def __init__(self, selector):
+        self.selector = selector
+
+    def gen(self, fun):
+        selector = self.selector
+        class StringPattern(FlagPattern):
+            def __call__(self, cg, symbol):
+                return fun(selector(symbol))
+        return StringPattern()
+
+    def __eq__(self, str):
+        return self.gen(lambda a: a == str)
+
+    def __ne__(self, str):
+        return self.gen(lambda a: a != str)
+
+    def like(self, regex):
+        pattern = compile_pattern(regex)
+        return self.gen(lambda a: pattern.search(a) != None)
+
+    def endswith(self, str):
+        return self.gen(lambda a: a.endswith(str))
+
+    def startswith(self, str):
+        return self.gen(lambda a: a.startswith(str))
+
 var = Flag(lambda s: s.var)
 fun = ~var
 static = Flag(lambda s: s.static)
 extern = ~static
 decl = Flag(lambda s: s.decl)
+name = String(lambda s: s.name)
+file = String(lambda s: s.file)
 
 calls = build_rp(SymbolSet.callees)
 called_by = build_rp(SymbolSet.callers)
@@ -346,12 +376,18 @@ trcalled_by = build_rp(SymbolSet.trcallers)
 calls_itself = build_srp(SymbolSet.callees)()
 tcalls_itself = build_srp(SymbolSet.tcallees)()
 
-class Length:
+class Number:
+    def __init__(self, selector):
+        self.selector = selector
+
     def gen(self, fun):
-        class LengthPattern(FlagPattern):
-            def __call__(self, cg, path):
-                return fun(len(path))
-        return LengthPattern()
+        selector = self.selector
+        class NumberPattern(FlagPattern):
+            # Symbol and Path predicates have the same format, which
+            # we (ab)use here...
+            def __call__(self, cg, item):
+                return fun(selector(item))
+        return NumberPattern()
 
     def __ge__(self, len):
         return self.gen(lambda a: a >= len)
@@ -384,7 +420,8 @@ class Length:
     # (length > 4) & (length < 6), which is inconvenient ("&" doesn't
     # have the right priority).
 
-length = Length()
+length = Number(lambda path: len(path))
+line = Number(lambda symbol: symbol.line)
 
 class contains(FlagPattern):
     def __init__(self, what):
