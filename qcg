@@ -136,9 +136,10 @@ try:
                                 + os.path.sep + pbase)
         path = os.path.abspath(path)
         cwd = os.getcwd()
+        if not cwd.endswith(os.path.sep):
+            cwd = cwd + os.path.sep
         if path.startswith(cwd):
-            l = len(cwd) + (1 if not cwd.endswith(os.path.sep) else 0)
-            path = path[l:]
+            path = path[len(cwd):]
         return path
 
     for s in X:
