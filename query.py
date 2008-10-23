@@ -1,10 +1,15 @@
 import cgt
 import re
+import os
 
 def compile_pattern(pat):
     if pat == all or pat == None:
         pat = ".*"
     return re.compile("^" + pat + "$")
+
+# Turn off type checking.
+def len(what):
+    return what.__len__()
 
 class SymbolSet (object):
     def __init__(self, parent, contains):
@@ -146,6 +151,14 @@ class SymbolSet (object):
             for b in dest:
                 ret += fpaths(self.parent, a, b)
         return PathSet(self.parent, list(set(tuple(i) for i in ret)))
+
+    def sort(self, cmp_fun = None):
+        if id(cmp_fun) == id(None):
+            cmp_fun = lambda a, b: cmp(a.name, b.name)
+        ret = list(self.contains)
+        ret.sort(cmp=cmp_fun)
+        self.contains = ret
+        return self
 
 class CG (SymbolSet):
     def __init__(self, *files):
@@ -331,9 +344,29 @@ def build_srp (func):
             return len(func(SymbolSet(None, [symbol])) * SymbolSet(None, [symbol])) > 0
     return SelfRelationshipPattern
 
-class String:
+class SortBy:
+    def __init__(self, evaluator, comparator):
+        self.evaluator = evaluator
+        self.comparator = comparator
+    def __call__(self, a, b):
+        return self.comparator(self.evaluator(a), self.evaluator(b))
+    def __invert__(self):
+        return SortBy(self.evaluator, lambda a, b: -self.comparator(a, b))
+
+class Basic:
     def __init__(self, selector):
         self.selector = selector
+
+    # For use as sort operator:
+    def __call__(self, a, b):
+        return cmp(self.selector(a), self.selector(b))
+
+    def __invert__(self):
+        return ~SortBy(self.selector, cmp)
+
+class String (Basic):
+    def __init__(self, *args, **kwargs):
+        Basic.__init__(self, *args, **kwargs)
 
     def gen(self, fun):
         selector = self.selector
@@ -358,6 +391,10 @@ class String:
     def startswith(self, str):
         return self.gen(lambda a: a.startswith(str))
 
+    # Additional methods for use as sort operator:
+    def __len__(self):
+        return SortBy(lambda a: len(self.selector(a)), cmp)
+
 var = Flag(lambda s: s.var)
 fun = ~var
 static = Flag(lambda s: s.static)
@@ -376,9 +413,9 @@ trcalled_by = build_rp(SymbolSet.trcallers)
 calls_itself = build_srp(SymbolSet.callees)()
 tcalls_itself = build_srp(SymbolSet.tcallees)()
 
-class Number:
-    def __init__(self, selector):
-        self.selector = selector
+class Number (Basic):
+    def __init__(self, *args, **kwargs):
+        Basic.__init__(self, *args, **kwargs)
 
     def gen(self, fun):
         selector = self.selector
