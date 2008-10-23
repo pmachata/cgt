@@ -402,6 +402,9 @@ extern = ~static
 decl = Flag(lambda s: s.decl)
 name = String(lambda s: s.name)
 file = String(lambda s: s.file)
+file.base = String(lambda s: os.path.basename(s.file))
+file.dir = String(lambda s: os.path.dirname(s.file))
+file.path = file.dir
 
 calls = build_rp(SymbolSet.callees)
 called_by = build_rp(SymbolSet.callers)
