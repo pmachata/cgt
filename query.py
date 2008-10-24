@@ -152,11 +152,20 @@ class SymbolSet (object):
                 ret += fpaths(self.parent, a, b)
         return PathSet(self.parent, list(set(tuple(i) for i in ret)))
 
-    def sort(self, cmp_fun = None):
-        if id(cmp_fun) == id(None):
-            cmp_fun = lambda a, b: cmp(a.name, b.name)
+    def sort(self, *cmp_funs):
+        if not cmp_funs:
+            cmp_funs = [lambda a, b: cmp(a.name, b.name)]
+
+        def chaincmp(a, b):
+            ret = None
+            for cmp0 in cmp_funs:
+                ret = cmp0(a, b)
+                if ret != 0:
+                    break
+            return ret
+
         ret = list(self.contains)
-        ret.sort(cmp=cmp_fun)
+        ret.sort(cmp=chaincmp)
         self.contains = ret
         return self
 
