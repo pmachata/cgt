@@ -391,9 +391,8 @@ class String (Basic):
     def startswith(self, str):
         return self.gen(lambda a: a.startswith(str))
 
-    # Additional methods for use as sort operator:
     def __len__(self):
-        return SortBy(lambda a: len(self.selector(a)), cmp)
+        return Number(lambda a: len(self.selector(a)))
 
 var = Flag(lambda s: s.var)
 fun = ~var
