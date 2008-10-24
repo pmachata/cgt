@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import sys
 import getopt
+import os
+from string import Template
 
 format_string = None
 show_file = False
@@ -92,15 +94,12 @@ if format_string == None:
         + (" " if show_file or show_line else "")\
         + "%n"
 
-from string import Template
 class PercentTemplate(Template):
     delimiter = '%'
 
 if interpret_escapes:
     format_string = unescape(format_string)
 format_template = PercentTemplate(format_string)
-
-del Template, PercentTemplate
 
 # Don't support multiple files for now.
 if len(args) != 1:
@@ -113,18 +112,13 @@ for file in args:
         print "can't open %s" % file
         sys.exit(1)
 
-del sys
-del getopt
-from query import *
-cg = CG(*args)
-X = eval(query_string)
+import query
+X = eval(query_string, query.__dict__, {"cg": query.CG(*args)})
+del query
 
 excode = 1
-
-import sys
 try:
     def gimmepath(p):
-        import os
         p = os.path.normpath(p)
         if os.path.isabs(p):
             return p
