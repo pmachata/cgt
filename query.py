@@ -130,6 +130,8 @@ class SymbolSet (object):
     def __len__(self):
         return len(self.contains)
 
+    len = property(lambda self: len(self))
+
     def paths(self, dest):
         def fpaths(graph, start, end, path=[]):
             path = path + [start]
@@ -384,11 +386,26 @@ class String (Basic):
                 return fun(selector(symbol))
         return StringPattern()
 
+    def gen2(self, fun):
+        selector = self.selector
+        class StringPattern2(FlagPattern):
+            def __call__(self, cg, symbol):
+                return fun(symbol)
+        return StringPattern2()
+
     def __eq__(self, str):
-        return self.gen(lambda a: a == str)
+        if str.__class__ == String:
+            selector = self.selector
+            return self.gen2(lambda a: selector(a) == str.selector(a))
+        else:
+            return self.gen(lambda a: a == str)
 
     def __ne__(self, str):
-        return self.gen(lambda a: a != str)
+        if str.__class__ == String:
+            selector = self.selector
+            return self.gen2(lambda a: selector(a) != str.selector(a))
+        else:
+            return self.gen(lambda a: a != str)
 
     def like(self, regex):
         pattern = compile_pattern(regex)
@@ -399,6 +416,19 @@ class String (Basic):
 
     def startswith(self, str):
         return self.gen(lambda a: a.startswith(str))
+
+    upper = property(lambda self: String(lambda s: self.selector(s).upper()))
+    lower = property(lambda self: String(lambda s: self.selector(s).lower()))
+    capitalize = property(lambda self: String(lambda s: self.selector(s).capitalize()))
+
+    isalpha = property(lambda self: self.gen(lambda a: a.isalpha()))
+
+    def __contains__(self, str):
+        print "__contains__"
+        def foo(a):
+            print "foo:", a
+            return str in a
+        return self.gen(foo)
 
     def __len__(self):
         return Number(lambda a: len(self.selector(a)))

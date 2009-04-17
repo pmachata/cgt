@@ -6,6 +6,8 @@
 #include "reader.hh"
 #include "quark.hh"
 
+#include <iosfwd>
+
 class cgfile {
   typedef std::MAP<unsigned, ProgramSymbol*> id_psym_map;
   typedef std::MAP<q::Quark, ProgramSymbol*> name_psym_map;
@@ -23,6 +25,7 @@ public:
   void include(tok_vect_vect const& file_tokens, char const* curmodule);
   void include(char const* filename);
   void sort_psyms_by_file();
+  void dump(std::ostream & o) const;
 
   // `include' doesn't compute callers by default, only callees.  Call
   // this function to have callers re/computed.

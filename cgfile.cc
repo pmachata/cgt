@@ -374,6 +374,34 @@ cgfile::sort_psyms_by_file()
 }
 
 void
+cgfile::dump(std::ostream & outs) const
+{
+  q::Quark path = NULL;
+  for (psym_vect::const_iterator it = all_program_symbols.begin();
+       it != all_program_symbols.end(); ++it)
+    {
+      ProgramSymbol * psym = *it;
+//       if (psym->is_forwarder() || !psym->is_used())
+// 	continue;
+
+      q::Quark psym_path = psym->get_qpath();
+      if (psym_path != path)
+	{
+	  path = psym_path;
+	  if (path == NULL)
+	    {
+	      std::cerr << "warning unset path for symbol " << std::flush;
+	      std::cerr << psym->get_name() << ": " << std::flush;
+	      std::cerr << psym->get_file()->get_name() << "." << std::endl;
+	    }
+	  outs << "F " << psym->get_path() << std::endl;
+	}
+
+      psym->dump(outs);
+    }
+}
+
+void
 cgfile::compute_callers()
 {
   std::for_each(m_all_program_symbols.begin(),
