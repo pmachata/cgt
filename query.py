@@ -15,7 +15,7 @@ class SymbolSet (object):
     def __init__(self, parent, contains):
         """Parent is supposed to be the ultimate "whole-world"
         callgraph.  It's used for computation of inverted set."""
-        self.contains = set(contains)
+        self.contains = contains
         self.parent = parent
         self.callees_set = None
         self.callers_set = None
@@ -54,7 +54,7 @@ class SymbolSet (object):
         if self.callees_set != None:
             return self.callees_set
 
-        callees_set = set()
+        callees_set = cgt.vset(self.parent.cg)
         for sym in self.contains:
             callees_set.update(sym.callees())
         self.callees_set = SymbolSet(self.parent, callees_set)
@@ -64,30 +64,34 @@ class SymbolSet (object):
         if self.callers_set != None:
             return self.callers_set
 
-        callers_set = set()
+        callers_set = cgt.vset(self.parent.cg)
         for sym in self.contains:
             callers_set.update(sym.callers())
         self.callers_set = SymbolSet(self.parent, callers_set)
         return self.callers_set
 
     def tcallers(self):
-        return tclose(self, callers)
+        #return tclose(self, callers)
+        return set(self.contains.find_reachable(True))
 
     def tcallees(self):
-        return tclose(self, callees)
+        #return tclose(self, callees)
+        return set(self.contains.find_reachable(False))
 
     def trcallers(self):
-        return trclose(self, callers)
+        return self.contains + self.tacallers();
+        #return trclose(self, callers)
 
     def trcallees(self):
-        return trclose(self, callees)
+        return self.contains + self.tacallees();
+        #return trclose(self, callees)
 
     def __repr__(self):
         return "{" + ", ".join(s.name for s in self.contains) + "}"
 
     def __getitem__(self, pattern):
         if callable(pattern) and pattern != all:
-            c = set()
+            c = cgt.vset(self.parent.cg)
             for sym in self.contains:
                 if pattern(self.parent, sym):
                     c.add(sym)
@@ -133,26 +137,11 @@ class SymbolSet (object):
     len = property(lambda self: len(self))
 
     def paths(self, dest):
-        def fpaths(graph, start, end, path=[]):
-            path = path + [start]
-            if start == end:
-                return [path]
-            found = []
-            for node in start.callees():
-                if node not in path:
-                    newpaths = fpaths(graph, node, end, path)
-                    for newpath in newpaths:
-                        found.append(newpath)
-            return found
-
         if type(dest) == str or callable(dest):
             dest = self.parent[dest]
 
-        ret = []
-        for a in self:
-            for b in dest:
-                ret += fpaths(self.parent, a, b)
-        return PathSet(self.parent, list(set(tuple(i) for i in ret)))
+        return PathSet(self.parent, self.contains.find_paths(dest.contains)) \
+            + PathSet(self.parent, [])
 
     def sort(self, *cmp_funs):
         if not cmp_funs:
@@ -171,12 +160,16 @@ class SymbolSet (object):
         self.contains = ret
         return self
 
+    def dump_for_graphviz(self):
+        sg = cgt.vset_subgraph(self.contains)
+        return sg.dump_for_graphviz()
+
 class CG (SymbolSet):
     def __init__(self, *files):
         self.cg = cgt.cgfile() # keep the reference
         for file in files:
             self.cg.include(file)
-        self.cg.compute_callers()
+        #self.cg.compute_callers()
         SymbolSet.__init__(self, self, self.cg.all_program_symbols())
 
 class PathSet (object):
@@ -221,7 +214,7 @@ class PathSet (object):
             # paths["main.*"] -> SymbolSet containing just symbols matching "main.*"
             if type(pattern) != slice:
                 pattern = compile_pattern(pattern)
-                sset = set()
+                sset = cgt.vset(self.parent.cg)
                 for path in self.paths:
                     for sym in path:
                         if pattern.search(sym.name):
