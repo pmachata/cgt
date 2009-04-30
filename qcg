@@ -139,9 +139,13 @@ try:
     for s in X:
         excode = 0
         if not quiet:
-            out = format_template.substitute(l = str(s.line),
-                                             n = s.name,
-                                             f = gimmepath(s.file))
+            # temporary workaround for paths in the query result
+            if hasattr(s, "line") and hasattr(s, "name") and hasattr(s, "file"):
+                out = format_template.substitute(l = str(s.line),
+                                                 n = s.name,
+                                                 f = gimmepath(s.file))
+            else:
+                out = s
             out = out + ("\0" if null_terminated else "\n")
             sys.stdout.write(out)
         else:

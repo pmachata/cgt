@@ -72,18 +72,18 @@ class SymbolSet (object):
 
     def tcallers(self):
         #return tclose(self, callers)
-        return set(self.contains.find_reachable(True))
+        return self.contains.find_reachable(True)
 
     def tcallees(self):
         #return tclose(self, callees)
-        return set(self.contains.find_reachable(False))
+        return self.contains.find_reachable(False)
 
     def trcallers(self):
-        return self.contains + self.tacallers();
+        return self.contains + self.tcallers();
         #return trclose(self, callers)
 
     def trcallees(self):
-        return self.contains + self.tacallees();
+        return self.contains + self.tcallees();
         #return trclose(self, callees)
 
     def __repr__(self):
