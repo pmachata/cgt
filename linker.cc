@@ -20,7 +20,16 @@ link(char ** filenames, int count, cgfile & f)
     {
       char const* curmodule = filenames[k];
 
-      fd_reader *rd = open_or_die(curmodule);
+      fd_reader *rd;
+      try {
+        rd = new fd_reader(FD(curmodule));
+      }
+      catch (int) {
+        std::cerr << "Error opening " << curmodule
+              << " for reading, will be ignored..."
+              << std::endl;
+        continue;
+      }
       tokenize_file(rd, file_tokens);
       f.include(file_tokens, curmodule);
       delete rd;
