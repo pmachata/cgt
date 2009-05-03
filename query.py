@@ -143,6 +143,20 @@ class SymbolSet (object):
         return PathSet(self.parent, self.contains.find_paths(dest.contains)) \
             + PathSet(self.parent, [])
 
+    def trails(self, dest):
+        if type(dest) == str or callable(dest):
+            dest = self.parent[dest]
+
+        return PathSet(self.parent, self.contains.find_trails(dest.contains)) \
+            + PathSet(self.parent, [])
+
+    def prune(self, src, dst):
+        if type(src) == str or callable(src):
+            src = self.parent[src]
+        if type(dst) == str or callable(src):
+            dst = self.parent[dst]
+        return SymbolSet(self.parent, src.trcallees() * dst.trcallers())
+
     def sort(self, *cmp_funs):
         if not cmp_funs:
             cmp_funs = [lambda a, b: cmp(a.name, b.name)]
