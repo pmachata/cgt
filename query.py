@@ -71,20 +71,16 @@ class SymbolSet (object):
         return self.callers_set
 
     def tcallers(self):
-        #return tclose(self, callers)
-        return self.contains.find_reachable(True)
+        return SymbolSet(self.parent, self.contains.find_reachable(True))
 
     def tcallees(self):
-        #return tclose(self, callees)
-        return self.contains.find_reachable(False)
+        return SymbolSet(self.parent, self.contains.find_reachable(False))
 
     def trcallers(self):
-        return self.contains + self.tcallers();
-        #return trclose(self, callers)
+        return SymbolSet(self.parent, self.contains + self.tcallers().contains)
 
     def trcallees(self):
-        return self.contains + self.tcallees();
-        #return trclose(self, callees)
+        return SymbolSet(self.parent, self.contains + self.tcallees().contains)
 
     def __repr__(self):
         return "{" + ", ".join(s.name for s in self.contains) + "}"
@@ -155,7 +151,8 @@ class SymbolSet (object):
             src = self.parent[src]
         if type(dst) == str or callable(src):
             dst = self.parent[dst]
-        return SymbolSet(self.parent, src.trcallees() * dst.trcallers())
+        return SymbolSet(self.parent,
+                src.trcallees().contains * dst.trcallers().contains)
 
     def sort(self, *cmp_funs):
         if not cmp_funs:
