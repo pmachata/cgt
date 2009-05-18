@@ -118,15 +118,8 @@ class BitmapIndexer {
             if (list.size() != nVert)
                 list.resize(nVert);
 
-            // check if index is available
-            TIndex &index = list[vertex];
-            if (index.size() != nVert) {
-                // build index
-                index.resize(nVert, false);
-                BitmapIndexer::build(vertex, dir);
-            }
-
-            return index;
+            buildIfNeeded(vertex, dir);
+            return list[vertex];
         }
 
         /**
@@ -150,8 +143,6 @@ class BitmapIndexer {
          * @param dir Type of indexes to compute (IN our OUT).
          */
         void build(EDirection dir) {
-            using namespace boost;
-
             // initialize storage if needed
             size_t nVert = boost::num_vertices(graph_);
             TIndexList &list = storage_[dir];
@@ -159,51 +150,8 @@ class BitmapIndexer {
                 list.resize(nVert);
 
             // allocate all indexes
-            for (TVertex v = 0; v < nVert; ++v) {
-                TIndex &index = list[v];
-                index.resize(nVert, false);
-            }
-
-            // loop until anything is changed
-            dynamic_bitset <> whatChanged;
-            whatChanged.resize(nVert, true);
-            while (whatChanged.npos != whatChanged.find_first()) {
-                dynamic_bitset <> changingNow(nVert);
-#if DEBUG_BITMAP_INDEX
-                std::cerr << "." << std::flush;
-#endif
-                // for all vertices
-                for (TVertex src = 0; src < nVert; ++src) {
-                    if (!whatChanged[src])
-                        // skip unchanged vertex
-                        continue;
-
-                    if (dir == IN) {
-                        // for all successors
-                        typename Traits::out_edge_iterator ii, ii_end;
-                        for(tie(ii, ii_end) = out_edges(src, graph_);
-                            ii != ii_end; ++ii)
-                        {
-                            TVertex dst = target(*ii, graph_);
-                            if (BitmapIndexer::propagate(list, src, dst))
-                                changingNow[dst] = true;
-                        }
-                    } else {
-                        // for all predecessors
-                        typename Traits::in_edge_iterator ii, ii_end;
-                        for(tie(ii, ii_end) = in_edges(src, graph_);
-                                ii != ii_end; ++ii)
-                        {
-                            TVertex dst = source(*ii, graph_);
-                            if (BitmapIndexer::propagate(list, src, dst))
-                                changingNow[dst] = true;
-                        }
-                    }
-                }
-
-                // remember what is changed for next loop
-                whatChanged = changingNow;
-            }
+            for (TVertex v = 0; v < nVert; ++v)
+                buildIfNeeded(v, dir);
         }
 
         /**
@@ -229,30 +177,17 @@ class BitmapIndexer {
         TIndexList      storage_[2];
 
     private:
-        bool propagate(TIndexList &list, TVertex src, TVertex dst) {
-            // check range
+        void buildIfNeeded(TVertex vertex, EDirection dir) {
             size_t nVert = boost::num_vertices(graph_);
-            assert (src < nVert);
-            assert (dst < nVert);
+            TIndexList &list = storage_[dir];
 
-            // obtain indexes
-            TIndex &srcIndex = list[src];
-            TIndex &dstIndex = list[dst];
-
-            // make bit or (and remember what is changed)
-            boost::dynamic_bitset <> tmp(dstIndex);
-            tmp |= srcIndex;
-            tmp ^= dstIndex;
-            dstIndex |= srcIndex;
-
-            // (delayed) marking of self (src->dst)
-            if (!dstIndex[src]) {
-                dstIndex[src] = true;
-                return true;
+            // check if index is available
+            TIndex &index = list[vertex];
+            if (index.size() != nVert) {
+                // build index
+                index.resize(nVert, false);
+                BitmapIndexer::build(vertex, dir);
             }
-
-            // return true if dst was changed
-            return tmp.npos != tmp.find_first();
         }
 
         /**
