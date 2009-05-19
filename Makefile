@@ -1,7 +1,7 @@
 OPENMP = #-fopenmp
-TARGETS = linker query cgt.so randcg
+TARGETS = linker cgt.so randcg
 CXXPPFLAGS = -DNDEBUG -DUSE_CPP0X -DUSE_EXPECT $(CXXINCLUDES)
-CXXFLAGS = -std=c++0x -Wall $(OPENMP) -g -O2 $(CXXPPFLAGS)
+CXXFLAGS = -std=c++0x -Wall $(OPENMP) -g -O2 $(CXXPPFLAGS) -fPIC
 LDFLAGS = $(OPENMP)
 
 ALLSOURCES = $(wildcard *.cc *.hh *.ii) Makefile
@@ -13,10 +13,9 @@ LDFLAGS += -lboost_regex
 all: $(TARGETS)
 
 cgtmodule.cc-dep cgtmodule.o: CXXINCLUDES += -I/usr/include/python2.5/
-cgt.so: LDFLAGS += -lboost_python -lpython2.5 -shared -fpic
+cgt.so: LDFLAGS += -lboost_python -lpython2.5 -shared
 
 linker: linker.o canon.o quark.o id.o symbol.o reader.o cgfile.o
-query: query.o canon.o quark.o id.o symbol.o reader.o cgfile.o
 cgt.so: cgtmodule.o canon.o quark.o id.o symbol.o reader.o cgfile.o
 randcg: randcg.o symbol.o quark.o id.o rand.o reader.o canon.o
 
