@@ -20,7 +20,7 @@
 #ifndef VERTEX_FILTER_H
 #define VERTEX_FILTER_H
 
-#include "config.h"
+#include "config.hh"
 
 #include <boost/graph/filtered_graph.hpp>
 

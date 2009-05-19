@@ -20,7 +20,7 @@
 #ifndef CALLGRAPH_H
 #define CALLGRAPH_H
 
-#include "config.h"
+#include "config.hh"
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/shared_ptr.hpp>

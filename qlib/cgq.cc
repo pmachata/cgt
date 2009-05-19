@@ -17,17 +17,17 @@
  * along with cgt.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
+#include "config.hh"
 
 #ifndef SHOW_LOOKUP_PROGRESS
 #   define SHOW_LOOKUP_PROGRESS 0
 #endif
 
-#include "BitmapIndex.h"
-#include "CallGraph.h"
-#include "Cgt.h"
-#include "PathFinder.h"
-#include "SymbolMap.h"
+#include "BitmapIndex.hh"
+#include "CallGraph.hh"
+#include "Cgt.hh"
+#include "PathFinder.hh"
+#include "SymbolMap.hh"
 
 #include <fstream>
 #include <iomanip>

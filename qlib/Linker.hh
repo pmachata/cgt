@@ -20,10 +20,10 @@
 #ifndef LINKER_H
 #define LINKER_H
 
-#include "config.h"
-#include "CallGraph.h"
+#include "config.hh"
+#include "CallGraph.hh"
 // FIXME: do not write directly to stderr
-#include "Color.h"
+#include "Color.hh"
 
 // FIXME: do not write directly to stderr
 #include <iostream>

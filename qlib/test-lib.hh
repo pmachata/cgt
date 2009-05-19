@@ -20,7 +20,7 @@
 #ifndef TEST_LIB_H
 #define TEST_LIB_H
 
-#include "config.h"
+#include "config.hh"
 #include <boost/graph/adjacency_list.hpp>
 
 

@@ -17,8 +17,8 @@
  * along with cgt.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-#include "Cgt.h"
+#include "config.hh"
+#include "Cgt.hh"
 
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>

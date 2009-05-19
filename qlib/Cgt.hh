@@ -20,9 +20,9 @@
 #ifndef CGT_H
 #define CGT_H
 
-#include "config.h"
-#include "CallGraph.h"
-#include "Color.h"
+#include "config.hh"
+#include "CallGraph.hh"
+#include "Color.hh"
 
 #include <iostream>
 #include <map>

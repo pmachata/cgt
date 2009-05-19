@@ -20,8 +20,8 @@
 #ifndef BITMAP_INDEX_H
 #define BITMAP_INDEX_H
 
-#include "config.h"
-#include "VertexFilter.h"
+#include "config.hh"
+#include "VertexFilter.hh"
 
 #ifndef DEBUG_BITMAP_INDEX
 #   define DEBUG_BITMAP_INDEX 0

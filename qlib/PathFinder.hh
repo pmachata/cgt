@@ -20,7 +20,7 @@
 #ifndef PATH_FINDER_H
 #define PATH_FINDER_H
 
-#include "config.h"
+#include "config.hh"
 
 #ifndef DEBUG_PATH_FINDER
 #   define DEBUG_PATH_FINDER 0

@@ -17,10 +17,10 @@
  * along with cgt.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-#include "BitmapIndex.h"
-#include "PathFinder.h"
-#include "test-lib.h"
+#include "config.hh"
+#include "BitmapIndex.hh"
+#include "PathFinder.hh"
+#include "test-lib.hh"
 
 #undef NDEBUG
 #include <cassert>

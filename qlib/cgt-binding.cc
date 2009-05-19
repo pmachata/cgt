@@ -1,10 +1,10 @@
-#include "BitmapIndex.h"
-#include "CallGraph.h"
-#include "Cgt.h"
-#include "Color.h"
-#include "Linker.h"
-#include "PathFinder.h"
-#include "VertexFilter.h"
+#include "BitmapIndex.hh"
+#include "CallGraph.hh"
+#include "Cgt.hh"
+#include "Color.hh"
+#include "Linker.hh"
+#include "PathFinder.hh"
+#include "VertexFilter.hh"
 
 #include <algorithm>
 #include <cstdlib>

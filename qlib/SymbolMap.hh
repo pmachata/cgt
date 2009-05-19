@@ -20,8 +20,8 @@
 #ifndef SYMBOL_MAP_H
 #define SYMBOL_MAP_H
 
-#include "config.h"
-#include "CallGraph.h"
+#include "config.hh"
+#include "CallGraph.hh"
 
 #include <boost/graph/adjacency_list.hpp>
 

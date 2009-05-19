@@ -17,9 +17,9 @@
  * along with cgt.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
-#include "VertexFilter.h"
-#include "test-lib.h"
+#include "config.hh"
+#include "VertexFilter.hh"
+#include "test-lib.hh"
 
 #undef NDEBUG
 #include <cassert>

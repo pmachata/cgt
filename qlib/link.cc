@@ -17,13 +17,13 @@
  * along with cgt.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "config.h"
+#include "config.hh"
 
-#include "CallGraph.h"
-#include "Cgt.h"
-#include "Color.h"
-#include "Linker.h"
-#include "VertexFilter.h"
+#include "CallGraph.hh"
+#include "Cgt.hh"
+#include "Color.hh"
+#include "Linker.hh"
+#include "VertexFilter.hh"
 
 #include <fstream>
 #include <iostream>
