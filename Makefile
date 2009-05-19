@@ -13,7 +13,7 @@ LDFLAGS += -lboost_regex -lreadline
 
 all: $(TARGETS)
 
-cgtmodule.cc-dep cgtmodule.o qlib/cgt-binding.cc-dep qlib/cgt-binding.o: CXXINCLUDES += -I/usr/include/python2.5/
+cgtmodule.% qlib/cgt-binding.%: CXXINCLUDES += -I/usr/include/python2.5/
 
 linker: linker.o canon.o quark.o id.o symbol.o reader.o cgfile.o
 randcg: randcg.o symbol.o quark.o id.o rand.o reader.o canon.o
