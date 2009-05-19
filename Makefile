@@ -4,15 +4,15 @@ CXXPPFLAGS = -DNDEBUG -DUSE_CPP0X -DUSE_EXPECT $(CXXINCLUDES)
 CXXFLAGS = -std=c++0x -Wall $(OPENMP) -g -O2 $(CXXPPFLAGS) -fPIC
 LDFLAGS = $(OPENMP)
 
-ALLSOURCES = $(wildcard *.cc *.hh *.ii qlib/*.cxx qlib/*.h) Makefile
-CCSOURCES = $(filter %.cc,$(ALLSOURCES)) $(filter %.cxx,$(ALLSOURCES))
-DEPFILES = $($(CCSOURCES:%.cc=%.cc-dep):%.cxx=%.cxx-dep)
+ALLSOURCES = $(wildcard *.cc *.hh *.ii qlib/*.cpp qlib/*.h) Makefile
+CCSOURCES = $(filter %.cc,$(ALLSOURCES)) $(filter %.cpp,$(ALLSOURCES))
+DEPFILES = $(patsubst %.cpp,%.cpp-dep,$(patsubst %.cc,%.cc-dep,$(CCSOURCES)))
 
 LDFLAGS += -lboost_regex -lreadline
 
 all: $(TARGETS)
 
-cgtmodule.cc-dep cgtmodule.o qlib/cgt-binding.o: CXXINCLUDES += -I/usr/include/python2.5/
+cgtmodule.cc-dep cgtmodule.o qlib/cgt-binding.cpp-dep qlib/cgt-binding.o: CXXINCLUDES += -I/usr/include/python2.5/
 
 linker: linker.o canon.o quark.o id.o symbol.o reader.o cgfile.o
 randcg: randcg.o symbol.o quark.o id.o rand.o reader.o canon.o
@@ -25,7 +25,9 @@ cgq: qlib/cgq.o qlib/Cgt.o qlib/Color.o -liberty
 -include $(DEPFILES)
 
 %.cc-dep: %.cc
-	$(CXX) $(CXXFLAGS) -M $< > $@
+	$(CXX) $(CXXFLAGS) -MM -MT '$(<:%.cc=%.o) $@' $< > $@
+%.cpp-dep: %.cpp
+	$(CXX) $(CXXFLAGS) -MM -MT '$(<:%.cpp=%.o) $@' $< > $@
 $(TARGETS):
 	$(CXX) $(LDFLAGS) $^ -o $@
 
