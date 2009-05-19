@@ -19,7 +19,7 @@ linker: linker.o canon.o quark.o id.o symbol.o reader.o cgfile.o
 randcg: randcg.o symbol.o quark.o id.o rand.o reader.o canon.o
 
 cgt.so: LDFLAGS += -lboost_python -lpython2.5 -shared
-cgt.so: qlib/cgt-binding.o qlib/Cgt.o qlib/Color.o
+cgt.so: qlib/cgt-binding.o qlib/Cgt.o qlib/Color.o -liberty
 link: qlib/link.o qlib/Cgt.o qlib/Color.o -liberty
 cgq: qlib/cgq.o qlib/Cgt.o qlib/Color.o -liberty
 
