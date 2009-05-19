@@ -6,6 +6,7 @@
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
+#include <unistd.h>
 
 #include <fstream>
 #include <iostream>
@@ -65,28 +66,5 @@ main(int argc, char **argv)
   link(argv + optind, argc - optind, f);
   f.sort_psyms_by_file();
   f.compute_used();
-
-  q::Quark path = NULL;
-  for (psym_vect::const_iterator it = f.all_program_symbols.begin();
-       it != f.all_program_symbols.end(); ++it)
-    {
-      ProgramSymbol * psym = *it;
-//       if (psym->is_forwarder() || !psym->is_used())
-// 	continue;
-
-      q::Quark psym_path = psym->get_qpath();
-      if (psym_path != path)
-	{
-	  path = psym_path;
-	  if (path == NULL)
-	    {
-	      std::cerr << "warning unset path for symbol " << std::flush;
-	      std::cerr << psym->get_name() << ": " << std::flush;
-	      std::cerr << psym->get_file()->get_name() << "." << std::endl;
-	    }
-	  outs << "F " << psym->get_path() << std::endl;
-	}
-
-      psym->dump(outs);
-    }
+  f.dump(outs);
 }
