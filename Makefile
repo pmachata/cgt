@@ -1,7 +1,7 @@
 OPENMP = #-fopenmp
 TARGETS = linker cgt.so randcg link cgq
 CXXPPFLAGS = -DNDEBUG -DUSE_CPP0X -DUSE_EXPECT $(CXXINCLUDES)
-CXXFLAGS = -std=c++0x -Wall $(OPENMP) -g -O2 $(CXXPPFLAGS) -fPIC
+CXXFLAGS = -Wall $(OPENMP) -g -O2 $(CXXPPFLAGS) -fPIC
 LDFLAGS = $(OPENMP)
 
 DIRS = . qlib
@@ -36,5 +36,8 @@ test-%: %.o %.cc test.o
 
 clean:
 	rm -f *.o qlib/*.o qlib/*.*-dep *.*-dep $(TARGETS)
+
+calgary.so: calgary.cc
+	$(CXX) -I$(shell $(CXX) -print-file-name=plugin/include) $(CXXFLAGS) -shared -fpic -fno-rtti $^ -o $@
 
 .PHONY: all clean dist
