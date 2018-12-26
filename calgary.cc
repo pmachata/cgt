@@ -1,7 +1,9 @@
 #include <iostream>
 #include <cassert>
+#include <fstream>
 #include <map>
 #include <set>
+#include <string>
 #include <tuple>
 #include <vector>
 
@@ -15,6 +17,8 @@
 #include <cgraph.h>
 
 int plugin_is_GPL_compatible;
+
+using namespace std::string_literals;
 
 namespace
 {
@@ -137,15 +141,15 @@ namespace
                   << dump_callee (dst) << std::endl;
     }
 
-    std::pair <const char *, unsigned>
+    static std::pair <const char *, unsigned>
     get_loc (tree decl)
     {
       return {DECL_SOURCE_FILE (decl),
               DECL_SOURCE_LINE (decl)};
     }
 
-    int
-    process_loc (tree decl)
+    static int
+    process_loc (std::ostream &os, tree decl)
     {
       std::pair <const char *, unsigned> loc = get_loc (decl);
       const char *file = std::get <0> (loc);
@@ -154,16 +158,39 @@ namespace
       if (static const char *last_file = nullptr;
           file != last_file)
         {
-          fprintf (stderr, "F %s\n", file);
+          os << "F " << file << std::endl;
           last_file = file;
         }
       return line;
     }
 
     void
-    dump ()
+    dump_one (std::ostream &os, tree src)
     {
-      std::map <tree, std::vector <tree>> cgr;
+      unsigned lineno = process_loc (os, src);
+      unsigned flags = m_nodes[src];
+      os << DECL_UID (src) << " (" << lineno << ") "
+         << (flags & NODE_STATIC ? "@static " : "")
+         << (flags & NODE_DEF ? "" : "@decl ")
+         << dump_callee (src);
+    }
+
+    void
+    dump (std::ostream &os)
+    {
+      struct node_less
+      {
+        bool
+        operator() (tree a, tree b) const
+        {
+          std::string fn_a = std::get <0> (get_loc (a));
+          std::string fn_b = std::get <0> (get_loc (b));
+          return std::make_tuple (fn_a, a)
+               < std::make_tuple (fn_b, b);
+        }
+      };
+
+      std::map <tree, std::vector <tree>, node_less> cgr;
       for (auto n: m_nodes)
         cgr[n.first] = {};
       for (auto const &a: m_edges)
@@ -175,14 +202,7 @@ namespace
       for (auto const &c: cgr)
         {
           tree src = c.first;
-
-          unsigned flags = m_nodes[src];
-          fprintf (stderr, "%d (%d) %s%s%s",
-                   DECL_UID (src),
-                   process_loc (src),
-                   (flags & NODE_STATIC) ? "@static " : "",
-                   (flags & NODE_DEF) ? "" : "@decl ",
-                   dump_callee (src).c_str ());
+          dump_one (os, src);
           seen.insert (src);
           unseen.erase (src);
 
@@ -190,16 +210,16 @@ namespace
             {
               if (seen.find (dst) == seen.end ())
                 unseen.insert (dst);
-              fprintf (stderr, " %d", DECL_UID (dst));
+              os << ' ' << DECL_UID (dst);
             }
-          fprintf (stderr, "\n");
+          os << std::endl;
         }
 
       for (auto src: unseen)
-        fprintf (stderr, "%d (%d) @decl %s\n",
-                 DECL_UID (src),
-                 process_loc (src),
-                 dump_callee (src).c_str ());
+        {
+          dump_one (os, src);
+          os << std::endl;
+        }
     }
 
     void
@@ -469,9 +489,14 @@ namespace
 
 class calgary
 {
-  struct callgraph m_cg;
+  std::ofstream m_ofs;
+  callgraph m_cg;
 
 public:
+  explicit calgary (std::string ofn)
+    : m_ofs {ofn}
+  {}
+
   void
   finish_parse_function (tree fn)
   {
@@ -572,7 +597,7 @@ public:
   void
   dump ()
   {
-    m_cg.dump ();
+    m_cg.dump (m_ofs);
   }
 };
 
@@ -629,14 +654,20 @@ plugin_init (struct plugin_name_args *plugin_info,
     register_callback (plugin_info->base_name, PLUGIN_INFO, nullptr, &info);
   }
 
+  std::string ofn = "/dev/stdout";
   for (int i = 0; i < plugin_info->argc; ++i)
     {
-      std::cerr << "Unknown argument: " << plugin_info->argv[i].key
-                << std::endl;
-      return 1;
+      if ("o"s == plugin_info->argv[i].key)
+        ofn = plugin_info->argv[i].value;
+      else
+        {
+          std::cerr << "Unknown argument: " << plugin_info->argv[i].key
+                    << std::endl;
+          return 1;
+        }
     }
 
-  calgary *cgr = new calgary;
+  calgary *cgr = new calgary (ofn);
 
   register_callback (plugin_info->base_name, PLUGIN_FINISH_PARSE_FUNCTION,
                      finish_parse_function, cgr);
