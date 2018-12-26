@@ -35,6 +35,9 @@ const char *(*get_get_arg (int i,
     else
         fn = &last_arg;
 
+    if (i > 10)
+        fn = gn;
+
     return fn;
     // internal: gn -> get_get_arg()::dflt
     // internal: fn -> gn

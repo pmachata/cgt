@@ -93,7 +93,13 @@ namespace
 
   class callgraph
   {
+  public:
+    static constexpr unsigned NODE_DEF    = 1 << 0;
+    static constexpr unsigned NODE_STATIC = 1 << 1;
+
+  private:
     tree m_dfsrc;
+    std::map <tree, unsigned> m_nodes; // All functions.
     std::set <std::tuple <tree, tree>> m_edges; // (caller, callee)
 
   public:
@@ -106,6 +112,12 @@ namespace
     {}
 
     void
+    add_node (tree node, unsigned flags)
+    {
+      m_nodes[node] |= flags;
+    }
+
+    void
     add (tree dst)
     {
       add (m_dfsrc, dst);
@@ -114,26 +126,37 @@ namespace
     void
     add (tree src, tree dst)
     {
-      if (false)
+      // Make sure non-function nodes are added as well.
+      add_node (src, 0);
+      add_node (dst, 0);
+
+      m_edges.insert ({src, dst});
+
+      if (!true)
         std::cerr << dump_callee (src) << " -> "
                   << dump_callee (dst) << std::endl;
-      m_edges.insert ({src, dst});
+    }
+
+    std::pair <const char *, unsigned>
+    get_loc (tree decl)
+    {
+      return {DECL_SOURCE_FILE (decl),
+              DECL_SOURCE_LINE (decl)};
     }
 
     int
     process_loc (tree decl)
     {
-      unsigned line = 0;
+      std::pair <const char *, unsigned> loc = get_loc (decl);
+      const char *file = std::get <0> (loc);
+      unsigned line = std::get <1> (loc);
 
-      static const char *last_file = nullptr;
-      char const *file = DECL_SOURCE_FILE (decl);
-      if (file != last_file)
+      if (static const char *last_file = nullptr;
+          file != last_file)
         {
           fprintf (stderr, "F %s\n", file);
           last_file = file;
         }
-      line = DECL_SOURCE_LINE (decl);
-
       return line;
     }
 
@@ -141,18 +164,24 @@ namespace
     dump ()
     {
       std::map <tree, std::vector <tree>> cgr;
+      for (auto n: m_nodes)
+        cgr[n.first] = {};
       for (auto const &a: m_edges)
         cgr[std::get <0> (a)].push_back (std::get <1> (a));
 
+      std::map <const char *, std::vector <tree>> fmap;
       std::set <tree> seen;
       std::set <tree> unseen;
       for (auto const &c: cgr)
         {
           tree src = c.first;
 
-          fprintf (stderr, "%d (%d) %s",
+          unsigned flags = m_nodes[src];
+          fprintf (stderr, "%d (%d) %s%s%s",
                    DECL_UID (src),
                    process_loc (src),
+                   (flags & NODE_STATIC) ? "@static " : "",
+                   (flags & NODE_DEF) ? "" : "@decl ",
                    dump_callee (src).c_str ());
           seen.insert (src);
           unseen.erase (src);
@@ -284,10 +313,20 @@ namespace
   void walk (tree t, callgraph &cg, unsigned level = 0);
 
   void
+  walk_operand (tree t, unsigned i, callgraph &cg, unsigned level,
+                bool may_be_null = false)
+  {
+    if (tree ti = TREE_OPERAND (t, i))
+      walk (ti, cg, level + 1);
+    else
+      assert (may_be_null);
+  }
+
+  void
   walk_operands (tree t, callgraph &cg, unsigned level)
   {
     for (int i = 0; i < tree_operand_length (t); ++i)
-      walk (TREE_OPERAND (t, i), cg, level + 1);
+      walk_operand (t, i, cg, level + 1);
   }
 
   void
@@ -366,7 +405,16 @@ namespace
                 cg.add (dst, callee);
             }
         }
-        break;
+        return walk_operands (t, cg, level);
+
+      case COND_EXPR:
+        // Operand 0 is the condition.
+        walk_operand (t, 0, cg, level);
+        // Operand 1 is the then-value.
+        walk_operand (t, 1, cg, level);
+        // Operand 2 is the else-value.
+        walk_operand (t, 2, cg, level, true);
+        return;
 
       case CONSTRUCTOR:
         for (unsigned i = 0; i < CONSTRUCTOR_NELTS (t); ++i)
@@ -394,7 +442,18 @@ namespace
         return;
 
       case INDIRECT_REF:
-        return walk_operands (t, cg, level);
+        // One operand, an expression for a pointer.
+        return walk_operand (t, 0, cg, level);
+
+      case COMPONENT_REF:
+        // Operand 0 is the structure or union expression;
+        return walk_operand (t, 0, cg, level);
+
+      case ARRAY_REF:
+        // Operand 0 is the array; operand 1 is a (single) array index.
+        walk_operand (t, 0, cg, level);
+        walk_operand (t, 1, cg, level);
+        return;
       }
 
     if (COMPARISON_CLASS_P (t)
@@ -418,7 +477,7 @@ public:
   {
     assert (TREE_CODE (fn) == FUNCTION_DECL);
 
-    if (false)
+    if (!true)
       {
         std::cerr << "\n- fn --------\n"
                   << assembler_name (fn) << "(";
@@ -434,6 +493,12 @@ public:
         std::cerr << ")" << std::endl
                   << "-------------\n";
       }
+
+
+    unsigned flags = callgraph::NODE_DEF;
+    if (!TREE_PUBLIC (fn))
+      flags |= callgraph::NODE_STATIC;
+    m_cg.add_node (fn, flags);
 
     if (tree body = DECL_SAVED_TREE (fn))
       {
@@ -465,11 +530,15 @@ public:
             return;
         break;
 
+      case FUNCTION_DECL:
+        m_cg.add_node (decl, TREE_PUBLIC (decl) ? 0 : callgraph::NODE_STATIC);
+        return;
+
       default:
         return;
       }
 
-    if (false)
+    if (!true)
       std::cerr << "\n- decl ------\n"
                 << decl_name (decl) << std::endl
                 << "-------------\n";
