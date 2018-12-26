@@ -37,6 +37,7 @@ test-%: %.o %.cc test.o
 clean:
 	rm -f *.o qlib/*.o qlib/*.*-dep *.*-dep $(TARGETS)
 
+calgary.so: CXXFLAGS += -std=c++17
 calgary.so: calgary.cc
 	$(CXX) -I$(shell $(CXX) -print-file-name=plugin/include) $(CXXFLAGS) -shared -fpic -fno-rtti $^ -o $@
 

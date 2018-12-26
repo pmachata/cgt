@@ -69,7 +69,7 @@ namespace
   }
 }
 
-namespace calgary
+namespace
 {
   std::string
   dump_callee (tree callee)
@@ -91,21 +91,24 @@ namespace calgary
     return ret;
   }
 
-  struct fnctx
+  class callgraph
   {
-    tree dfsrc;
+    tree m_dfsrc;
+    std::set <std::tuple <tree, tree>> m_edges; // (caller, callee)
 
-    // Set of assignment nodes. Each node is (decl, value).
-    std::set <std::tuple <tree, tree>> assign;
+  public:
+    explicit callgraph (tree dfsrc)
+      : m_dfsrc {dfsrc}
+    {}
 
-    explicit fnctx (tree dfsrc)
-      : dfsrc {dfsrc}
+    callgraph ()
+      : callgraph (NULL_TREE)
     {}
 
     void
     add (tree dst)
     {
-      add (dfsrc, dst);
+      add (m_dfsrc, dst);
     }
 
     void
@@ -114,7 +117,7 @@ namespace calgary
       if (false)
         std::cerr << dump_callee (src) << " -> "
                   << dump_callee (dst) << std::endl;
-      assign.insert ({src, dst});
+      m_edges.insert ({src, dst});
     }
 
     int
@@ -138,29 +141,36 @@ namespace calgary
     dump ()
     {
       std::map <tree, std::vector <tree>> cgr;
-      for (auto const &a: assign)
+      for (auto const &a: m_edges)
         cgr[std::get <0> (a)].push_back (std::get <1> (a));
 
       std::set <tree> seen;
+      std::set <tree> unseen;
       for (auto const &c: cgr)
         {
           tree src = c.first;
-
-          for (auto const &dst: c.second)
-            if (seen.insert (dst).second)
-              fprintf (stderr, "%d (%d) @decl %s\n",
-                       DECL_UID (dst),
-                       process_loc (dst),
-                       dump_callee (dst).c_str ());
 
           fprintf (stderr, "%d (%d) %s",
                    DECL_UID (src),
                    process_loc (src),
                    dump_callee (src).c_str ());
+          seen.insert (src);
+          unseen.erase (src);
+
           for (auto const &dst: c.second)
-            fprintf (stderr, " %d", DECL_UID (dst));
+            {
+              if (seen.find (dst) == seen.end ())
+                unseen.insert (dst);
+              fprintf (stderr, " %d", DECL_UID (dst));
+            }
           fprintf (stderr, "\n");
         }
+
+      for (auto src: unseen)
+        fprintf (stderr, "%d (%d) @decl %s\n",
+                 DECL_UID (src),
+                 process_loc (src),
+                 dump_callee (src).c_str ());
     }
 
     void
@@ -169,7 +179,7 @@ namespace calgary
       // Get rid of the nodes representing function-local variables and
       // propagate the information to the periphery of the function.
       std::map <tree, std::set <tree>> internal;
-      for (auto it = assign.begin (); it != assign.end (); )
+      for (auto it = m_edges.begin (); it != m_edges.end (); )
         {
           tree src = std::get <0> (*it);
           tree dst = std::get <1> (*it);
@@ -177,7 +187,7 @@ namespace calgary
               && TREE_CODE (DECL_CONTEXT (src)) == FUNCTION_DECL)
             {
               internal[src].insert (dst);
-              it = assign.erase (it);
+              it = m_edges.erase (it);
             }
           else
             ++it;
@@ -186,24 +196,28 @@ namespace calgary
       bool changed;
       do {
         changed = false;
-        for (auto it = assign.begin (); it != assign.end (); )
+        for (auto it = m_edges.begin (); it != m_edges.end (); )
           {
             tree src = std::get <0> (*it);
             tree dst = std::get <1> (*it);
             auto jt = internal.find (dst);
             if (jt != internal.end ())
               {
-                it = assign.erase (it);
+                it = m_edges.erase (it);
                 for (auto dst2: jt->second)
-                  assign.insert ({src, dst2});
+                  m_edges.insert ({src, dst2});
                 changed = true;
               }
             else
               ++it;
           }
       } while (changed);
+    }
 
-      dump ();
+    void
+    merge (callgraph &&other)
+    {
+      m_edges.merge (std::move (other.m_edges));
     }
   };
 
@@ -267,17 +281,17 @@ namespace calgary
     die ("get_initializer: unhandled code");
   }
 
-  void walk (tree t, fnctx &fc, unsigned level = 0);
+  void walk (tree t, callgraph &cg, unsigned level = 0);
 
   void
-  walk_operands (tree t, fnctx &fc, unsigned level)
+  walk_operands (tree t, callgraph &cg, unsigned level)
   {
     for (int i = 0; i < tree_operand_length (t); ++i)
-      walk (TREE_OPERAND (t, i), fc, level + 1);
+      walk (TREE_OPERAND (t, i), cg, level + 1);
   }
 
   void
-  walk (tree t, fnctx &fc, unsigned level)
+  walk (tree t, callgraph &cg, unsigned level)
   {
     if (!true)
       std::cerr << spaces (level)
@@ -295,7 +309,7 @@ namespace calgary
       case CALL_EXPR:
         {
           tree callee = get_callee (CALL_EXPR_FN (t));
-          fc.add (callee);
+          cg.add (callee);
 
           // Arguments of the callee.
           std::vector <tree> callee_args;
@@ -320,9 +334,9 @@ namespace calgary
               if (callee_arg && (is_function_type (TREE_TYPE (callee_arg))
                                  || is_function_type (TREE_TYPE (arg))))
                 if (tree callee = get_initializer (arg))
-                  fc.add (callee_arg, callee);
+                  cg.add (callee_arg, callee);
 
-              walk (arg, fc, level + 1);
+              walk (arg, cg, level + 1);
             }
         }
         return;
@@ -336,8 +350,8 @@ namespace calgary
             {
               if (is_function_type (TREE_TYPE (decl)))
                 if (tree callee = get_initializer (init))
-                  fc.add (decl, callee);
-              walk (init, fc, level + 1);
+                  cg.add (decl, callee);
+              walk (init, cg, level + 1);
             }
         }
         return;
@@ -349,7 +363,7 @@ namespace calgary
             {
               tree val = TREE_OPERAND (t, 1);
               if (tree callee = get_initializer (val))
-                fc.add (dst, callee);
+                cg.add (dst, callee);
             }
         }
         break;
@@ -360,27 +374,27 @@ namespace calgary
             constructor_elt *elt = CONSTRUCTOR_ELT (t, i);
             if (is_function_type (TREE_TYPE (elt->index)))
               if (tree callee = get_initializer (elt->value))
-                fc.add (elt->index, callee);
+                cg.add (elt->index, callee);
 
-            walk (elt->index, fc, level + 1);
-            walk (elt->value, fc, level + 1);
+            walk (elt->index, cg, level + 1);
+            walk (elt->value, cg, level + 1);
           }
         return;
 
       case BIND_EXPR:
         {
           tree body = BIND_EXPR_BODY (t);
-          return walk (body, fc, level + 1);
+          return walk (body, cg, level + 1);
         }
 
       case STATEMENT_LIST:
         for (tree_stmt_iterator it = tsi_start (t); !tsi_end_p (it);
              tsi_next (&it))
-          walk (tsi_stmt (it), fc, level + 1);
+          walk (tsi_stmt (it), cg, level + 1);
         return;
 
       case INDIRECT_REF:
-        return walk_operands (t, fc, level);
+        return walk_operands (t, cg, level);
       }
 
     if (COMPARISON_CLASS_P (t)
@@ -388,13 +402,19 @@ namespace calgary
         || BINARY_CLASS_P (t)
         || EXPRESSION_CLASS_P (t)
         || STATEMENT_CLASS_P (t))
-      return walk_operands (t, fc, level);
+      return walk_operands (t, cg, level);
 
     die ("unhandled node");
   }
+}
 
+class calgary
+{
+  struct callgraph m_cg;
+
+public:
   void
-  __finish_parse_function (tree fn)
+  finish_parse_function (tree fn)
   {
     assert (TREE_CODE (fn) == FUNCTION_DECL);
 
@@ -417,14 +437,15 @@ namespace calgary
 
     if (tree body = DECL_SAVED_TREE (fn))
       {
-        fnctx fc {fn};
-        walk (body, fc);
-        fc.propagate ();
+        callgraph cg {fn};
+        walk (body, cg);
+        cg.propagate ();
+        m_cg.merge (std::move (cg));
       }
   }
 
   void
-  __finish_decl (tree decl)
+  finish_decl (tree decl)
   {
     assert (DECL_P (decl));
 
@@ -455,14 +476,15 @@ namespace calgary
 
     if (tree init = DECL_INITIAL (decl))
       {
-        fnctx fc {decl};
-        walk (init, fc);
-        fc.propagate ();
+        callgraph cg {decl};
+        walk (init, cg);
+        cg.propagate ();
+        m_cg.merge (std::move (cg));
       }
   }
 
   void
-  __finish_type (tree type)
+  finish_type (tree type)
   {
     assert (TYPE_P (type));
     return; // xxx drop this altogether
@@ -479,21 +501,44 @@ namespace calgary
   }
 
   void
+  dump ()
+  {
+    m_cg.dump ();
+  }
+};
+
+namespace
+{
+  void
   finish_parse_function (void *gcc_data, void *user_data)
   {
-    __finish_parse_function (static_cast <tree> (gcc_data));
+    auto fn = static_cast <tree> (gcc_data);
+    auto cgr = static_cast <calgary *> (user_data);
+    cgr->finish_parse_function (fn);
   }
 
   void
   finish_decl (void *gcc_data, void *user_data)
   {
-    __finish_decl (static_cast <tree> (gcc_data));
+    auto decl = static_cast <tree> (gcc_data);
+    auto cgr = static_cast <calgary *> (user_data);
+    cgr->finish_decl (decl);
   }
 
   void
   finish_type (void *gcc_data, void *user_data)
   {
-    __finish_type (static_cast <tree> (gcc_data));
+    auto type = static_cast <tree> (gcc_data);
+    auto cgr = static_cast <calgary *> (user_data);
+    cgr->finish_type (type);
+  }
+
+  void
+  finish (void *gcc_data, void *user_data)
+  {
+    auto cgr = static_cast <calgary *> (user_data);
+    cgr->dump ();
+    delete cgr;
   }
 }
 
@@ -522,12 +567,16 @@ plugin_init (struct plugin_name_args *plugin_info,
       return 1;
     }
 
+  calgary *cgr = new calgary;
+
   register_callback (plugin_info->base_name, PLUGIN_FINISH_PARSE_FUNCTION,
-                     calgary::finish_parse_function, nullptr);
+                     finish_parse_function, cgr);
   register_callback (plugin_info->base_name, PLUGIN_FINISH_DECL,
-                     calgary::finish_decl, nullptr);
+                     finish_decl, cgr);
   register_callback (plugin_info->base_name, PLUGIN_FINISH_TYPE,
-                     calgary::finish_type, nullptr);
+                     finish_type, cgr);
+  register_callback (plugin_info->base_name, PLUGIN_FINISH,
+                     finish, cgr);
 
   return 0;
 }
