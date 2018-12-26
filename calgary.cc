@@ -657,8 +657,62 @@ plugin_init (struct plugin_name_args *plugin_info,
   std::string ofn = "/dev/stdout";
   for (int i = 0; i < plugin_info->argc; ++i)
     {
-      if ("o"s == plugin_info->argv[i].key)
+      const char *arg = plugin_info->argv[i].key;
+      if (arg == "o"s)
         ofn = plugin_info->argv[i].value;
+      else if (arg == "opat"s)
+        {
+          // Substitution references like in make, e.g.: %.c:%.cg. Note we use a
+          // ":" to separate the pattern from the substitution, because gcc
+          // screws up passing arguments that contain a "=".
+          std::string val = plugin_info->argv[i].value;
+          std::string pat;
+          std::string subst;
+
+          {
+            auto pos = val.find (':');
+            if (pos == std::string::npos)
+              {
+                std::cerr << "Pattern '" << val << "' without substitution.\n"
+                          << "Example usage: -fplugin-arg-calgary-opat=%.c=%.cg\n";
+                return 1;
+              }
+            pat = val.substr (0, pos);
+            subst = val.substr (pos + 1);
+          }
+
+          if (pat.find ('%') == std::string::npos)
+            pat = "%"s + pat;
+          if (subst.find ('%') == std::string::npos)
+            subst = "%"s + subst;
+
+          std::string stem;
+          {
+            auto pos = pat.find ('%');
+            auto pfx = pat.substr (0, pos);
+            auto sfx = pat.substr (pos + 1);
+            std::string ifn = main_input_filename;
+            if (pfx.length () >= ifn.length ()
+                || sfx.length () >= ifn.length ()
+                || (pfx.length () + sfx.length ()) > ifn.length ()
+                || pfx != ifn.substr (0, pfx.length ())
+                || sfx != ifn.substr (ifn.length () - sfx.length ()))
+              {
+                std::cerr << "Pattern '" << pat
+                          << "' doesn't match the input file name '" << ifn
+                          << std::endl;
+                return 1;
+              }
+
+            size_t len = ifn.length () - pfx.length () - sfx.length ();
+            stem = ifn.substr (pfx.length (), len);
+          }
+
+          auto pos = subst.find ('%');
+          auto pfx = subst.substr (0, pos);
+          auto sfx = subst.substr (pos + 1);
+          ofn = pfx + stem + sfx;
+        }
       else
         {
           std::cerr << "Unknown argument: " << plugin_info->argv[i].key
