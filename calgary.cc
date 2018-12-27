@@ -378,9 +378,11 @@ namespace
           else
             {
               tree callee_type = TREE_TYPE (callee);
+              if (TREE_CODE (callee_type) == POINTER_TYPE)
+                callee_type = TREE_TYPE (callee_type);
               assert (TREE_CODE (callee_type) == FUNCTION_TYPE);
               tree args = TYPE_ARG_TYPES (callee_type);
-              // xxx this is TREE_NULL :-(
+              assert (args != NULL_TREE);
               for (tree a = args; a; a = TREE_CHAIN (a))
                 callee_args.push_back (TREE_VALUE (a));
             }
