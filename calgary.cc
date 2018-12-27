@@ -431,11 +431,50 @@ namespace
 
       case COND_EXPR:
         // Operand 0 is the condition.
-        walk_operand (t, 0, cg, level);
         // Operand 1 is the then-value.
-        walk_operand (t, 1, cg, level);
         // Operand 2 is the else-value.
+        walk_operand (t, 0, cg, level);
+        walk_operand (t, 1, cg, level);
         walk_operand (t, 2, cg, level, true);
+        return;
+
+      case SWITCH_EXPR:
+        // Operand 0 is the expression used to perform the branch,
+        // Operand 1 is the body of the switch. It may also be NULL.
+        // Operand 2 is either NULL_TREE or a TREE_VEC of the CASE_LABEL_EXPRs
+        walk_operand (t, 0, cg, level);
+        walk_operand (t, 1, cg, level, true);
+        walk_operand (t, 2, cg, level, true);
+        return;
+
+      case CASE_LABEL_EXPR:
+        // Operand 0 is CASE_LOW. It may be NULL_TREE
+        // Operand 1 is CASE_HIGH.  If it is NULL_TREE [...]
+        // Operand 2 is CASE_LABEL, which is is the corresponding LABEL_DECL.
+        // Operand 3 is CASE_CHAIN. This operand is only used in tree-cfg.c
+        walk_operand (t, 0, cg, level, true);
+        walk_operand (t, 1, cg, level, true);
+        return;
+
+      case TARGET_EXPR:
+        // operand 1 is the initializer for the target, which may be void
+        // operand 2 is the cleanup for this node, if any.
+        // operand 3 is the saved initializer after this node has been expanded
+        walk_operand (t, 0, cg, level, true);
+        walk_operand (t, 1, cg, level, true);
+        walk_operand (t, 2, cg, level, true);
+        return;
+
+      case ASM_EXPR:
+        for (tree list = ASM_OUTPUTS (t); list != NULL_TREE;
+             list = TREE_CHAIN (list))
+          walk (TREE_VALUE (list), cg, level + 1);
+        for (tree list = ASM_INPUTS (t); list != NULL_TREE;
+             list = TREE_CHAIN (list))
+          walk (TREE_VALUE (list), cg, level + 1);
+        for (tree list = ASM_CLOBBERS (t); list != NULL_TREE;
+             list = TREE_CHAIN (list))
+          walk (TREE_VALUE (list), cg, level + 1);
         return;
 
       case CONSTRUCTOR:
