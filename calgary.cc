@@ -391,8 +391,13 @@ namespace
           if (TREE_CODE (callee) == FUNCTION_DECL)
             for (tree a = DECL_ARGUMENTS (callee); a; a = TREE_CHAIN (a))
               callee_args.push_back (a);
-          else
+          else if (false)
             {
+              // xxx here we have _types_ available, but we need to encode
+              // parameter references. Looks like we need to stop refering to
+              // parameters by name and replace the references above with
+              // arg<0>, arg<1> etc., and here fabricate new nodes like that
+              // with types from TYPE_ARG_TYPES.
               tree callee_type = TREE_TYPE (callee);
               if (TREE_CODE (callee_type) == POINTER_TYPE)
                 callee_type = TREE_TYPE (callee_type);
