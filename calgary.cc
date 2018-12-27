@@ -35,6 +35,7 @@ namespace
   const char *
   decl_name (tree decl)
   {
+    assert (DECL_P (decl));
     tree t = DECL_NAME (decl);
     if (t != NULL_TREE)
       return IDENTIFIER_POINTER (t);
@@ -45,6 +46,7 @@ namespace
   const char *
   assembler_name (tree decl)
   {
+    assert (DECL_P (decl));
     tree t = DECL_ASSEMBLER_NAME (decl);
     if (t != NULL_TREE)
       return IDENTIFIER_POINTER (t);
