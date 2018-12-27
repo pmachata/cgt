@@ -330,6 +330,22 @@ namespace
     die ("get_initializer: unhandled code");
   }
 
+  tree
+  get_destination (tree dst)
+  {
+    switch (static_cast <int> (TREE_CODE (dst)))
+      {
+      case COMPONENT_REF:
+        return TREE_OPERAND (dst, 1);
+      case VAR_DECL:
+      case RESULT_DECL:
+        return dst;
+      }
+
+    std::cerr << get_tree_code_name (TREE_CODE (dst)) << std::endl;
+    die ("get_destination: unhandled code");
+  }
+
   void walk (tree t, callgraph &cg, unsigned level = 0);
 
   void
@@ -424,7 +440,8 @@ namespace
             {
               tree val = TREE_OPERAND (t, 1);
               if (tree callee = get_initializer (val))
-                cg.add (dst, callee);
+                if (tree dst2 = get_destination (dst))
+                  cg.add (dst2, callee);
             }
         }
         return walk_operands (t, cg, level);
