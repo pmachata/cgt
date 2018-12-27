@@ -53,6 +53,15 @@ namespace
     return decl_name (decl);
   }
 
+  __attribute__ ((unused)) const char *
+  tree_code (tree t)
+  {
+    if (t == NULL_TREE)
+      return "NULL_TREE";
+    else
+      return get_tree_code_name (TREE_CODE (t));
+  }
+
   void __attribute__ ((noreturn))
   die (const char *message)
   {
