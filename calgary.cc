@@ -331,10 +331,14 @@ namespace
     if (DECL_P (in))
       return in;
 
-    if (TREE_CODE (in) == CALL_EXPR)
+    switch (static_cast <int> (TREE_CODE (in)))
       {
+      case CALL_EXPR:
         tree callee = get_callee (CALL_EXPR_FN (in));
         return DECL_RESULT (callee);
+      case COMPONENT_REF:
+        // Operand 1 is the field (a node of type FIELD_DECL).
+        return TREE_OPERAND (in, 1);
       }
 
     std::cerr << get_tree_code_name (TREE_CODE (in)) << std::endl;
