@@ -420,6 +420,9 @@ namespace
                 // parameters by name and replace the references above with
                 // arg<0>, arg<1> etc., and here fabricate new nodes like that
                 // with types from TYPE_ARG_TYPES.
+                // xxx we'll need to do this anyway, because the parameter names
+                // may not match between the side that makes the call and the
+                // side that defines the actual callee.
                 tree callee_type = TREE_TYPE (callee);
                 if (TREE_CODE (callee_type) == POINTER_TYPE)
                   callee_type = TREE_TYPE (callee_type);
