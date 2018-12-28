@@ -521,6 +521,11 @@ namespace
           walk (TREE_VALUE (list), cg, level + 1);
         return;
 
+      case RETURN_EXPR:
+        // RETURN.  Evaluates operand 0, then returns from the current function.
+        // The operand may be null.
+        return walk_operand (t, 0, cg, level, true);
+
       case CONSTRUCTOR:
         for (unsigned i = 0; i < CONSTRUCTOR_NELTS (t); ++i)
           {
