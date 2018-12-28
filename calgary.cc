@@ -552,6 +552,10 @@ namespace
           return walk (body, cg, level + 1);
         }
 
+      case IMAGPART_EXPR: // Fall through.
+      case REALPART_EXPR:
+        return walk_operand (t, 0, cg, level);
+
       case STATEMENT_LIST:
         for (tree_stmt_iterator it = tsi_start (t); !tsi_end_p (it);
              tsi_next (&it))
