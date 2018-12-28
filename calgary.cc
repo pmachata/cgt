@@ -344,6 +344,10 @@ namespace
       case COMPONENT_REF:
         // Operand 1 is the field (a node of type FIELD_DECL).
         return TREE_OPERAND (in, 1);
+
+      case INTEGER_CST:
+        // This is likely NULL initialization.
+        return NULL_TREE;
       }
 
     std::cerr << get_tree_code_name (TREE_CODE (in)) << std::endl;
