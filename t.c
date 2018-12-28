@@ -32,3 +32,14 @@ dwarf_new_oom_handler (struct Dwarf *dbg, Dwarf_OOM handler)
   dbg->oom_handler = handler;
   return old;
 }
+
+void
+foo (int i)
+{
+    switch (i) {
+    case 0:
+        __attribute__ ((fallthrough));
+    case 1:
+        break;
+    }
+}
