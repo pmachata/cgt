@@ -555,7 +555,8 @@ namespace
         // One operand, an expression for a pointer.
         return walk_operand (t, 0, cg, level);
 
-      case COMPONENT_REF:
+      case COMPONENT_REF: // Fall through.
+      case BIT_FIELD_REF:
         // Operand 0 is the structure or union expression;
         return walk_operand (t, 0, cg, level);
 
