@@ -87,16 +87,27 @@ namespace
 namespace
 {
   std::string
+  dump_fcontext (tree decl)
+  {
+    if (TREE_CODE (decl) == FUNCTION_DECL)
+      {
+        std::string ret;
+        if (tree ctx = DECL_CONTEXT (decl); TREE_CODE (ctx) == FUNCTION_DECL)
+          ret += dump_fcontext (ctx);
+        return ret + decl_name (decl) + "()::";
+      }
+    return "";
+  }
+
+  std::string
   dump_callee (tree callee)
   {
     assert (DECL_P (callee));
 
-    std::string ret;
+    std::string ret = dump_fcontext (DECL_CONTEXT (callee));
+
     if (TREE_CODE (callee) == FIELD_DECL)
-      ret = std::string (type_name (DECL_CONTEXT (callee))) + "::";
-    else if (TREE_CODE (callee) == PARM_DECL
-             || TREE_CODE (callee) == RESULT_DECL)
-      ret = std::string (decl_name (DECL_CONTEXT (callee))) + "()::";
+      ret += std::string (type_name (DECL_CONTEXT (callee))) + "::";
 
     if (TREE_CODE (callee) == RESULT_DECL)
       ret += "<ret>";
@@ -397,6 +408,9 @@ namespace
     switch (static_cast <int> (TREE_CODE (decl)))
       {
       case TYPE_DECL:
+        return;
+      case FUNCTION_DECL:
+        // finish_parse_function() will have already seen body of this function.
         return;
       case VAR_DECL:
         if (tree init = DECL_INITIAL (decl))
