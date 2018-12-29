@@ -70,3 +70,10 @@ imagpart_expr (void)
   unsigned long long phdr_size = 10;
   return phnum > 18446744073709551615UL / phdr_size;
 }
+
+static void
+decl_expr_type (void)
+{
+    int foo = 10;
+    int (*p32)[foo] = 0;
+}

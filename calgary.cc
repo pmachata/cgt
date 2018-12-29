@@ -390,6 +390,30 @@ namespace
   }
 
   void
+  walk_decl (tree decl, callgraph &cg, unsigned level)
+  {
+    assert (DECL_P (decl));
+
+    switch (static_cast <int> (TREE_CODE (decl)))
+      {
+      case TYPE_DECL:
+        return;
+      case VAR_DECL:
+        if (tree init = DECL_INITIAL (decl))
+          {
+            if (is_function_type (TREE_TYPE (decl)))
+              if (tree callee = get_initializer (init))
+                cg.add (decl, callee);
+            walk (init, cg, level + 1);
+          }
+        return;
+      }
+
+    std::cerr << get_tree_code_name (TREE_CODE (decl)) << std::endl;
+    die ("walk_decl: unhandled code");
+  }
+
+  void
   walk (tree t, callgraph &cg, unsigned level)
   {
     if (!true)
@@ -453,19 +477,7 @@ namespace
         return;
 
       case DECL_EXPR:
-        {
-          tree decl = DECL_EXPR_DECL (t);
-          assert (TREE_CODE (decl) == VAR_DECL);
-          tree init = DECL_INITIAL (decl);
-          if (init)
-            {
-              if (is_function_type (TREE_TYPE (decl)))
-                if (tree callee = get_initializer (init))
-                  cg.add (decl, callee);
-              walk (init, cg, level + 1);
-            }
-        }
-        return;
+        return walk_decl (DECL_EXPR_DECL (t), cg, level);
 
       case MODIFY_EXPR:
         {
