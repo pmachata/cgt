@@ -383,6 +383,7 @@ namespace
   }
 
   void walk (tree t, callgraph &cg, unsigned level = 0);
+  void walk_call_expr (tree call_expr, tree fn, callgraph &cg, unsigned level);
 
   void
   walk_operand (tree t, unsigned i, callgraph &cg, unsigned level,
@@ -390,6 +391,16 @@ namespace
   {
     if (tree ti = TREE_OPERAND (t, i))
       walk (ti, cg, level + 1);
+    else
+      assert (may_be_null);
+  }
+
+  void
+  walk_call_expr_operand (tree call_expr, tree fn, unsigned i, callgraph &cg,
+                          unsigned level, bool may_be_null = false)
+  {
+    if (tree ti = TREE_OPERAND (fn, i))
+      walk_call_expr (call_expr, ti, cg, level + 1);
     else
       assert (may_be_null);
   }
@@ -431,6 +442,16 @@ namespace
   void
   walk_call_expr (tree call_expr, tree fn, callgraph &cg, unsigned level)
   {
+    if (TREE_CODE (fn) == COND_EXPR)
+      {
+        // A condition doesn't influence what the callee will be, so walk it
+        // normally. Dispatch to walk_call_expr for the then and else branches.
+        walk_operand (fn, 0, cg, level + 1);
+        walk_call_expr_operand (call_expr, fn, 1, cg, level + 1);
+        walk_call_expr_operand (call_expr, fn, 2, cg, level + 1, true);
+        return;
+      }
+
     tree callee = get_callee (fn);
     assert (callee != NULL_TREE);
     cg.add (callee);

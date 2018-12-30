@@ -84,3 +84,21 @@ inner_function (int i)
     int innerer_function (int j) { return j; }
     return innerer_function (i);
 }
+
+static void call_cond_expr_callee_1(void) {}
+static void call_cond_expr_callee_2(void) {}
+static int call_cond_expr_dispatch(int i)
+{
+    return i;
+}
+static void
+call_cond_expr_1 (int arg)
+{
+    (arg ? call_cond_expr_callee_1 : call_cond_expr_callee_2)();
+}
+static void
+call_cond_expr_2 (int arg)
+{
+    (call_cond_expr_dispatch (arg)
+     ? call_cond_expr_callee_1 : call_cond_expr_callee_2)();
+}
