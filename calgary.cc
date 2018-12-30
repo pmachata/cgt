@@ -428,6 +428,53 @@ namespace
   }
 
   void
+  walk_call_expr (tree call_expr, tree fn, callgraph &cg, unsigned level)
+  {
+    tree callee = get_callee (fn);
+    assert (callee != NULL_TREE);
+    cg.add (callee);
+
+    // Arguments of the callee.
+    std::vector <tree> callee_args;
+    if (TREE_CODE (callee) == FUNCTION_DECL)
+      for (tree a = DECL_ARGUMENTS (callee); a; a = TREE_CHAIN (a))
+        callee_args.push_back (a);
+    else if (false)
+      {
+        // xxx here we have _types_ available, but we need to encode
+        // parameter references. Looks like we need to stop refering to
+        // parameters by name and replace the references above with
+        // arg<0>, arg<1> etc., and here fabricate new nodes like that
+        // with types from TYPE_ARG_TYPES.
+        // xxx we'll need to do this anyway, because the parameter names
+        // may not match between the side that makes the call and the
+        // side that defines the actual callee.
+        tree callee_type = TREE_TYPE (callee);
+        if (TREE_CODE (callee_type) == POINTER_TYPE)
+          callee_type = TREE_TYPE (callee_type);
+        assert (TREE_CODE (callee_type) == FUNCTION_TYPE);
+        tree args = TYPE_ARG_TYPES (callee_type);
+        assert (args != NULL_TREE);
+        for (tree a = args; a; a = TREE_CHAIN (a))
+          callee_args.push_back (TREE_VALUE (a));
+      }
+
+    for (unsigned i = 0, nargs = call_expr_nargs (call_expr);
+         i < nargs; ++i)
+      {
+        tree arg = CALL_EXPR_ARG (call_expr, i);
+        tree callee_arg = (i < callee_args.size ())
+          ? callee_args[i] : NULL_TREE;
+        if (callee_arg && (is_function_type (TREE_TYPE (callee_arg))
+                           || is_function_type (TREE_TYPE (arg))))
+          if (tree callee = get_initializer (arg))
+            cg.add (callee_arg, callee);
+
+        walk (arg, cg, level + 1);
+      }
+  }
+
+  void
   walk (tree t, callgraph &cg, unsigned level)
   {
     if (!true)
@@ -445,49 +492,7 @@ namespace
       {
       case CALL_EXPR:
         if (tree fn = CALL_EXPR_FN (t))
-          {
-            tree callee = get_callee (fn);
-            assert (callee != NULL_TREE);
-            cg.add (callee);
-
-            // Arguments of the callee.
-            std::vector <tree> callee_args;
-            if (TREE_CODE (callee) == FUNCTION_DECL)
-              for (tree a = DECL_ARGUMENTS (callee); a; a = TREE_CHAIN (a))
-                callee_args.push_back (a);
-            else if (false)
-              {
-                // xxx here we have _types_ available, but we need to encode
-                // parameter references. Looks like we need to stop refering to
-                // parameters by name and replace the references above with
-                // arg<0>, arg<1> etc., and here fabricate new nodes like that
-                // with types from TYPE_ARG_TYPES.
-                // xxx we'll need to do this anyway, because the parameter names
-                // may not match between the side that makes the call and the
-                // side that defines the actual callee.
-                tree callee_type = TREE_TYPE (callee);
-                if (TREE_CODE (callee_type) == POINTER_TYPE)
-                  callee_type = TREE_TYPE (callee_type);
-                assert (TREE_CODE (callee_type) == FUNCTION_TYPE);
-                tree args = TYPE_ARG_TYPES (callee_type);
-                assert (args != NULL_TREE);
-                for (tree a = args; a; a = TREE_CHAIN (a))
-                  callee_args.push_back (TREE_VALUE (a));
-              }
-
-            for (unsigned i = 0, nargs = call_expr_nargs (t); i < nargs; ++i)
-              {
-                tree arg = CALL_EXPR_ARG (t, i);
-                tree callee_arg = (i < callee_args.size ())
-                  ? callee_args[i] : NULL_TREE;
-                if (callee_arg && (is_function_type (TREE_TYPE (callee_arg))
-                                   || is_function_type (TREE_TYPE (arg))))
-                  if (tree callee = get_initializer (arg))
-                    cg.add (callee_arg, callee);
-
-                walk (arg, cg, level + 1);
-              }
-          }
+          walk_call_expr (t, fn, cg, level);
         return;
 
       case DECL_EXPR:
