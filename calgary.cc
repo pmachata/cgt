@@ -54,7 +54,7 @@ namespace
   }
 
   __attribute__ ((unused)) const char *
-  tree_code (tree t)
+  tcn (tree t)
   {
     if (t == NULL_TREE)
       return "NULL_TREE";
@@ -324,7 +324,7 @@ namespace
         return TREE_OPERAND (t, 1);
       }
 
-    std::cerr << get_tree_code_name (TREE_CODE (t)) << std::endl;
+    std::cerr << tcn (t) << std::endl;
     die ("get_callee: unhandled code");
   }
 
@@ -362,7 +362,7 @@ namespace
         return NULL_TREE;
       }
 
-    std::cerr << get_tree_code_name (TREE_CODE (in)) << std::endl;
+    std::cerr << tcn (in) << std::endl;
     die ("get_initializer: unhandled code");
   }
 
@@ -378,7 +378,7 @@ namespace
         return dst;
       }
 
-    std::cerr << get_tree_code_name (TREE_CODE (dst)) << std::endl;
+    std::cerr << tcn (dst) << std::endl;
     die ("get_destination: unhandled code");
   }
 
@@ -435,7 +435,7 @@ namespace
         return;
       }
 
-    std::cerr << spaces (level) << "!" << tree_code (decl) << std::endl;
+    std::cerr << spaces (level) << "!" << tcn (decl) << std::endl;
     die ("walk_decl: unhandled code");
   }
 
@@ -443,7 +443,7 @@ namespace
   walk_call_expr (tree call_expr, tree fn, callgraph &cg, unsigned level)
   {
     if (!true)
-      std::cerr << spaces (level) << "call:" << tree_code (fn) << std::endl;
+      std::cerr << spaces (level) << "call:" << tcn (fn) << std::endl;
     if (TREE_CODE (fn) == COND_EXPR)
       {
         // A condition doesn't influence what the callee will be, so walk it
@@ -502,7 +502,7 @@ namespace
   walk (tree t, callgraph &cg, unsigned level)
   {
     if (!true)
-      std::cerr << spaces (level) << tree_code (t) << std::endl;
+      std::cerr << spaces (level) << tcn (t) << std::endl;
 
     // Declarations are processed in __finish_decl.
     if (DECL_P (t))
