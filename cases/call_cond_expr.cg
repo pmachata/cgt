@@ -1,0 +1,6 @@
+F ./cases/call_cond_expr.c
+1793 (1) @static call_cond_expr_callee_1
+1796 (2) @static call_cond_expr_callee_2
+1799 (3) @static call_cond_expr_dispatch
+1802 (8) @static call_cond_expr_1 1793 1796
+1805 (13) @static call_cond_expr_2 1793 1796 1799

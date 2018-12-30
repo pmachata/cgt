@@ -8,6 +8,7 @@ DIRS = . qlib
 ALLSOURCES = $(foreach dir,$(DIRS),$(wildcard $(dir)/*.cc $(dir)/*.hh $(dir)/*.ii)) Makefile
 CCSOURCES = $(filter %.cc,$(ALLSOURCES))
 DEPFILES = $(patsubst %.cc,%.cc-dep,$(CCSOURCES))
+CASES = $(patsubst cases/%.c,%,$(wildcard cases/*.c))
 
 LDFLAGS += -lboost_regex -lreadline
 
@@ -40,5 +41,19 @@ clean:
 calgary.so: CXXFLAGS += -std=c++17
 calgary.so: calgary.cc
 	$(CXX) -I$(shell $(CXX) -print-file-name=plugin/include) $(CXXFLAGS) -shared -fpic -fno-rtti $^ -o $@
+
+cgrtest-%: CF = ./cases/$*.c
+cgrtest-%: CGF = ./cases/$*.cg
+cgrtest-%:
+	@echo $*
+	@$(CC) -fplugin=$(shell pwd)/calgary.so -fplugin-arg-calgary-o=tmp -c $(CF)
+	@if [ -f $(CGF) ]; then			\
+		diff -u tmp $(CGF) || exit 1;	\
+	fi
+	@rm tmp
+.PHONY: cgrtest-%
+
+test: $(CASES:%=cgrtest-%)
+	:
 
 .PHONY: all clean dist
