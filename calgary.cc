@@ -67,6 +67,7 @@ namespace
   {
     std::cerr << "XXXXXXXXXXXXXXXXXXXXXXXXXXXX" << std::endl
               << message << std::endl;
+    assert (false);
     std::exit (1);
   }
 
