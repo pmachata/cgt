@@ -97,6 +97,7 @@ namespace
     tree m_dfsrc;
     std::map <tree, unsigned> m_nodes; // All functions.
     std::set <std::tuple <tree, tree>> m_edges; // (caller, callee)
+    std::map <tree, std::string> m_typedefs;
 
     std::string
     dump_fcontext (tree decl)
@@ -171,6 +172,16 @@ namespace
       if (!true)
         std::cerr << dump_callee (src) << " -> "
                   << dump_callee (dst) << std::endl;
+    }
+
+    void
+    add_typedef (tree decl)
+    {
+      assert (TREE_CODE (decl) == TYPE_DECL);
+
+      // xxx is it guaranteed that names are going to be the same between
+      // compilation units?
+      m_typedefs[DECL_ORIGINAL_TYPE (decl)] = decl_name (decl);
     }
 
     static std::pair <const char *, unsigned>
@@ -722,6 +733,10 @@ public:
 
       case FUNCTION_DECL:
         m_cg.add_node (decl, TREE_PUBLIC (decl) ? 0 : callgraph::NODE_STATIC);
+        return;
+
+      case TYPE_DECL:
+        m_cg.add_typedef (decl);
         return;
 
       default:
