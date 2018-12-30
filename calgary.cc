@@ -87,37 +87,6 @@ namespace
 
 namespace
 {
-  std::string
-  dump_fcontext (tree decl)
-  {
-    if (TREE_CODE (decl) == FUNCTION_DECL)
-      {
-        std::string ret;
-        if (tree ctx = DECL_CONTEXT (decl); TREE_CODE (ctx) == FUNCTION_DECL)
-          ret += dump_fcontext (ctx);
-        return ret + decl_name (decl) + "()::";
-      }
-    return "";
-  }
-
-  std::string
-  dump_callee (tree callee)
-  {
-    assert (DECL_P (callee));
-
-    std::string ret = dump_fcontext (DECL_CONTEXT (callee));
-
-    if (TREE_CODE (callee) == FIELD_DECL)
-      ret += std::string (type_name (DECL_CONTEXT (callee))) + "::";
-
-    if (TREE_CODE (callee) == RESULT_DECL)
-      ret += "<ret>";
-    else
-      ret += decl_name (callee);
-
-    return ret;
-  }
-
   class callgraph
   {
   public:
@@ -128,6 +97,46 @@ namespace
     tree m_dfsrc;
     std::map <tree, unsigned> m_nodes; // All functions.
     std::set <std::tuple <tree, tree>> m_edges; // (caller, callee)
+
+    std::string
+    dump_fcontext (tree decl)
+    {
+      if (TREE_CODE (decl) == FUNCTION_DECL)
+        {
+          std::string ret;
+          if (tree ctx = DECL_CONTEXT (decl); TREE_CODE (ctx) == FUNCTION_DECL)
+            ret += dump_fcontext (ctx);
+          return ret + decl_name (decl) + "()::";
+        }
+      return "";
+    }
+
+    std::string
+    dump_callee (tree callee)
+    {
+      assert (DECL_P (callee));
+
+      std::string ret = dump_fcontext (DECL_CONTEXT (callee));
+
+      if (TREE_CODE (callee) == FIELD_DECL)
+        {
+          tree record = DECL_CONTEXT (callee);
+          if (std::string name = type_name (record); name != "")
+            ret += name + "::";
+          else if (auto it = m_typedefs.find (record);
+                   it != m_typedefs.end ())
+            ret += std::get <1> (*it) + "::";
+          else
+            die ("Unknown structure name");
+        }
+
+      if (TREE_CODE (callee) == RESULT_DECL)
+        ret += "<ret>";
+      else
+        ret += decl_name (callee);
+
+      return ret;
+    }
 
   public:
     explicit callgraph (tree dfsrc)
