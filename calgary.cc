@@ -435,13 +435,15 @@ namespace
         return;
       }
 
-    std::cerr << get_tree_code_name (TREE_CODE (decl)) << std::endl;
+    std::cerr << spaces (level) << "!" << tree_code (decl) << std::endl;
     die ("walk_decl: unhandled code");
   }
 
   void
   walk_call_expr (tree call_expr, tree fn, callgraph &cg, unsigned level)
   {
+    if (!true)
+      std::cerr << spaces (level) << "call:" << tree_code (fn) << std::endl;
     if (TREE_CODE (fn) == COND_EXPR)
       {
         // A condition doesn't influence what the callee will be, so walk it
@@ -500,8 +502,7 @@ namespace
   walk (tree t, callgraph &cg, unsigned level)
   {
     if (!true)
-      std::cerr << spaces (level)
-                << get_tree_code_name (TREE_CODE (t)) << std::endl;
+      std::cerr << spaces (level) << tree_code (t) << std::endl;
 
     // Declarations are processed in __finish_decl.
     if (DECL_P (t))
@@ -514,7 +515,7 @@ namespace
       {
       case CALL_EXPR:
         if (tree fn = CALL_EXPR_FN (t))
-          walk_call_expr (t, fn, cg, level);
+          walk_call_expr (t, fn, cg, level + 1);
         return;
 
       case DECL_EXPR:
