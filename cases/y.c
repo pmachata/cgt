@@ -4,7 +4,7 @@ extern int atoi(const char *);
 int printf2(const char *fmt, ...)
 {
     printf("fmt:%s\n", fmt);
-}
+} // printf2 -> printf
 
 struct ops {
     int (*pf)(const char *fmt, ...);
@@ -88,8 +88,8 @@ call_foo_main(const char *(*get_arg)(int, char **),
     else
         return call_foo(get_twain_ops (), get_arg, argc, argv);
 }
-
 // call_foo_main -> call_foo
+// call_foo_main -> get_twain_ops
 // call_foo()::get_arg -> call_foo_main()::get_arg
 
 int
@@ -97,7 +97,7 @@ main(int argc, char *argv[])
 {
     return call_foo_main(get_get_arg (argc, first_arg), argc, argv);
 }
+// main -> get_get_arg
 // main -> call_foo_main
 // call_foo_main()::get_arg -> get_get_arg()::<ret>
-// main -> get_get_arg
 // get_get_arg()::dflt -> first_arg

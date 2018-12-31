@@ -1,0 +1,17 @@
+F ./cases/y.c
+1821 (32) @decl get_get_arg()::<ret> 1817 1808
+1801 (10) @decl ops::pf 798 1797
+798 (1) @decl printf
+1797 (4) printf2 798
+1795 (2) @decl atoi
+1817 (33) @decl get_get_arg()::dflt 1812
+1831 (57) @decl call_foo()::get_arg 1845
+1845 (83) @decl call_foo_main()::get_arg 1821
+1804 (14) foo 1801
+1808 (21) last_arg
+1812 (27) first_arg
+1820 (32) get_get_arg
+1834 (56) call_foo 1795 1831 1804
+1840 (74) get_twain_ops
+1848 (83) call_foo_main 1834 1840
+1852 (96) main 1820 1848
