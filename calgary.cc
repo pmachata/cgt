@@ -102,7 +102,8 @@ namespace
     std::string
     dump_fcontext (tree decl)
     {
-      if (TREE_CODE (decl) == FUNCTION_DECL)
+      if (decl != NULL_TREE
+          && TREE_CODE (decl) == FUNCTION_DECL)
         {
           std::string ret;
           if (tree ctx = DECL_CONTEXT (decl); TREE_CODE (ctx) == FUNCTION_DECL)
@@ -711,16 +712,28 @@ public:
   }
 
   void
+  process_aliases (tree decl)
+  {
+    for (tree attr = DECL_ATTRIBUTES (decl);
+         (attr = lookup_attribute ("alias", attr));
+         attr = TREE_CHAIN (attr))
+      {
+        tree arg = TREE_VALUE (attr);
+        tree ident = TREE_PURPOSE (attr);
+        const char *name = TREE_STRING_POINTER (TREE_VALUE (arg));
+        assert (TREE_PURPOSE (arg) == NULL_TREE);
+        assert (TREE_CHAIN (arg) == NULL_TREE);
+        assert (*TREE_STRING_POINTER (ident) == 0);
+
+        m_cg.dump_one (m_ofs, decl);
+        m_ofs << " -> " << name << std::endl;
+      }
+  }
+
+  void
   finish_decl (tree decl)
   {
     assert (DECL_P (decl));
-
-    for (tree attr = lookup_attribute ("alias", DECL_ATTRIBUTES (decl));
-         attr != NULL_TREE; attr = TREE_CHAIN (attr))
-      if (TREE_VALUE (attr))
-        std::cerr << "alias "
-                  << TREE_STRING_POINTER (TREE_VALUE (TREE_VALUE (attr)))
-                  << std::endl;
 
     switch (static_cast <int> (TREE_CODE (decl)))
       {
@@ -733,6 +746,7 @@ public:
 
       case FUNCTION_DECL:
         m_cg.add_node (decl, TREE_PUBLIC (decl) ? 0 : callgraph::NODE_STATIC);
+        process_aliases (decl);
         return;
 
       case TYPE_DECL:
@@ -755,6 +769,7 @@ public:
         cg.propagate ();
         m_cg.merge (std::move (cg));
       }
+    process_aliases (decl);
   }
 
   void
