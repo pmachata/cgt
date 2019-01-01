@@ -320,8 +320,10 @@ namespace
     assert (TYPE_P (t));
 
     // xxx cv-qual
-    if (TREE_CODE (t) == POINTER_TYPE)
-      t = TREE_TYPE (t);
+    switch (static_cast <int> (TREE_CODE (t)))
+    case POINTER_TYPE:
+    case ARRAY_TYPE:
+      return is_function_type (TREE_TYPE (t));
 
     return TREE_CODE (t) == FUNCTION_TYPE;
   }
@@ -343,6 +345,10 @@ namespace
       case COMPONENT_REF:
         // Operand 1 is the field (a node of type FIELD_DECL).
         return TREE_OPERAND (t, 1);
+
+      case ARRAY_REF:
+        // Operand 0 is the array; operand 1 is a (single) array index.
+        return get_callee (TREE_OPERAND (t, 0));
       }
 
     std::cerr << tcn (t) << std::endl;
@@ -377,6 +383,10 @@ namespace
       case COMPONENT_REF:
         // Operand 1 is the field (a node of type FIELD_DECL).
         return TREE_OPERAND (in, 1);
+
+      case ARRAY_REF:
+        // Operand 0 is the array; operand 1 is a (single) array index.
+        return get_initializer (TREE_OPERAND (in, 0));
 
       case INTEGER_CST:
         // This is likely NULL initialization.
@@ -520,6 +530,23 @@ namespace
   }
 
   void
+  walk_function_type (tree index, tree value, callgraph &cg)
+  {
+    if (TREE_CODE (value) == CONSTRUCTOR)
+      {
+        // Constructor of an array of function type.
+        for (unsigned i = 0; i < CONSTRUCTOR_NELTS (value); ++i)
+          {
+            constructor_elt *elt = CONSTRUCTOR_ELT (value, i);
+            if (tree callee = get_initializer (elt->value))
+              cg.add (index, callee);
+          }
+      }
+    else if (tree callee = get_initializer (value))
+      cg.add (index, callee);
+  }
+
+  void
   walk (tree t, callgraph &cg, unsigned level)
   {
     if (!true)
@@ -612,9 +639,9 @@ namespace
         for (unsigned i = 0; i < CONSTRUCTOR_NELTS (t); ++i)
           {
             constructor_elt *elt = CONSTRUCTOR_ELT (t, i);
-            if (is_function_type (TREE_TYPE (elt->index)))
-              if (tree callee = get_initializer (elt->value))
-                cg.add (elt->index, callee);
+            tree type = TREE_TYPE (elt->index);
+            if (is_function_type (type))
+              walk_function_type (elt->index, elt->value, cg);
 
             walk (elt->index, cg, level + 1);
             walk (elt->value, cg, level + 1);
