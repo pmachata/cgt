@@ -276,14 +276,18 @@ namespace
         {
           tree src = std::get <0> (*it);
           tree dst = std::get <1> (*it);
-          if (TREE_CODE (src) == VAR_DECL
-              && TREE_CODE (DECL_CONTEXT (src)) == FUNCTION_DECL)
+          if (TREE_CODE (src) == VAR_DECL)
             {
-              internal[src].insert (dst);
-              it = m_edges.erase (it);
+              if (tree ctx = DECL_CONTEXT (src);
+                  ctx != NULL_TREE && TREE_CODE (ctx) == FUNCTION_DECL)
+                {
+                  internal[src].insert (dst);
+                  it = m_edges.erase (it);
+                  continue;
+                }
             }
-          else
-            ++it;
+
+          ++it;
         }
 
       bool changed;
