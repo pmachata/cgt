@@ -420,6 +420,9 @@ namespace
   void
   walk_initializer (tree src, tree in, callgraph &cg, unsigned level)
   {
+    if (!true)
+      std::cerr << spaces (level) << "init:" << tcn (in) << std::endl;
+
     if (DECL_P (in))
       return cg.add (src, in);
 
