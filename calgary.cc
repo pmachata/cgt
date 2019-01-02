@@ -406,7 +406,7 @@ namespace
   }
 
   void
-  walk_initializer (tree src, tree in, callgraph &cg)
+  walk_initializer (tree src, tree in, callgraph &cg, unsigned level)
   {
     if (DECL_P (in))
       return cg.add (src, in);
@@ -415,7 +415,7 @@ namespace
       {
       case ADDR_EXPR: // Fall through.
       case NOP_EXPR:
-        return walk_initializer (src, TREE_OPERAND (in, 0), cg);
+        return walk_initializer (src, TREE_OPERAND (in, 0), cg, level + 1);
 
       case CALL_EXPR:
         if (tree fn = CALL_EXPR_FN (in))
@@ -435,7 +435,7 @@ namespace
 
       case ARRAY_REF:
         // Operand 0 is the array; operand 1 is a (single) array index.
-        return walk_initializer (src, TREE_OPERAND (in, 0), cg);
+        return walk_initializer (src, TREE_OPERAND (in, 0), cg, level + 1);
 
       case INTEGER_CST:
         // This is likely NULL initialization.
@@ -462,7 +462,7 @@ namespace
         if (tree init = DECL_INITIAL (decl))
           {
             if (is_function_type (TREE_TYPE (decl)))
-              walk_initializer (decl, init, cg);
+              walk_initializer (decl, init, cg, level);
             walk (init, cg, level + 1);
           }
         return;
@@ -524,14 +524,14 @@ namespace
           ? callee_args[i] : NULL_TREE;
         if (callee_arg && (is_function_type (TREE_TYPE (callee_arg))
                            || is_function_type (TREE_TYPE (arg))))
-          walk_initializer (callee_arg, arg, cg);
+          walk_initializer (callee_arg, arg, cg, level);
 
         walk (arg, cg, level + 1);
       }
   }
 
   void
-  walk_function_type (tree index, tree value, callgraph &cg)
+  walk_function_type (tree index, tree value, callgraph &cg, unsigned level)
   {
     if (TREE_CODE (value) == CONSTRUCTOR)
       {
@@ -539,11 +539,11 @@ namespace
         for (unsigned i = 0; i < CONSTRUCTOR_NELTS (value); ++i)
           {
             constructor_elt *elt = CONSTRUCTOR_ELT (value, i);
-            walk_initializer (index, elt->value, cg);
+            walk_initializer (index, elt->value, cg, level);
           }
       }
     else
-      walk_initializer (index, value, cg);
+      walk_initializer (index, value, cg, level);
   }
 
   void
@@ -576,7 +576,7 @@ namespace
             {
               tree val = TREE_OPERAND (t, 1);
               if (tree dst2 = get_destination (dst))
-                walk_initializer (dst2, val, cg);
+                walk_initializer (dst2, val, cg, level);
             }
         }
         return walk_operands (t, cg, level);
@@ -640,7 +640,7 @@ namespace
             constructor_elt *elt = CONSTRUCTOR_ELT (t, i);
             tree type = TREE_TYPE (elt->index);
             if (is_function_type (type))
-              walk_function_type (elt->index, elt->value, cg);
+              walk_function_type (elt->index, elt->value, cg, level);
 
             walk (elt->index, cg, level + 1);
             walk (elt->value, cg, level + 1);
