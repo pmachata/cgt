@@ -359,47 +359,6 @@ namespace
     die ("get_callee: unhandled code");
   }
 
-  void
-  walk_initializer (tree src, tree in, callgraph &cg)
-  {
-    if (DECL_P (in))
-      return cg.add (src, in);
-
-    switch (static_cast <int> (TREE_CODE (in)))
-      {
-      case ADDR_EXPR: // Fall through.
-      case NOP_EXPR:
-        return walk_initializer (src, TREE_OPERAND (in, 0), cg);
-
-      case CALL_EXPR:
-        if (tree fn = CALL_EXPR_FN (in))
-          {
-            tree callee = get_callee (fn);
-            cg.add (src, DECL_RESULT (callee));
-          }
-        return;
-
-      case COMPONENT_REF:
-        // Operand 1 is the field (a node of type FIELD_DECL).
-        {
-          tree dst = TREE_OPERAND (in, 1);
-          cg.add (src, dst);
-        }
-        return;
-
-      case ARRAY_REF:
-        // Operand 0 is the array; operand 1 is a (single) array index.
-        return walk_initializer (src, TREE_OPERAND (in, 0), cg);
-
-      case INTEGER_CST:
-        // This is likely NULL initialization.
-        return;
-      }
-
-    std::cerr << tcn (in) << std::endl;
-    die ("walk_initializer: unhandled code");
-  }
-
   tree
   get_destination (tree dst)
   {
@@ -444,6 +403,47 @@ namespace
   {
     for (int i = 0; i < tree_operand_length (t); ++i)
       walk_operand (t, i, cg, level + 1);
+  }
+
+  void
+  walk_initializer (tree src, tree in, callgraph &cg)
+  {
+    if (DECL_P (in))
+      return cg.add (src, in);
+
+    switch (static_cast <int> (TREE_CODE (in)))
+      {
+      case ADDR_EXPR: // Fall through.
+      case NOP_EXPR:
+        return walk_initializer (src, TREE_OPERAND (in, 0), cg);
+
+      case CALL_EXPR:
+        if (tree fn = CALL_EXPR_FN (in))
+          {
+            tree callee = get_callee (fn);
+            cg.add (src, DECL_RESULT (callee));
+          }
+        return;
+
+      case COMPONENT_REF:
+        // Operand 1 is the field (a node of type FIELD_DECL).
+        {
+          tree dst = TREE_OPERAND (in, 1);
+          cg.add (src, dst);
+        }
+        return;
+
+      case ARRAY_REF:
+        // Operand 0 is the array; operand 1 is a (single) array index.
+        return walk_initializer (src, TREE_OPERAND (in, 0), cg);
+
+      case INTEGER_CST:
+        // This is likely NULL initialization.
+        return;
+      }
+
+    std::cerr << tcn (in) << std::endl;
+    die ("walk_initializer: unhandled code");
   }
 
   void
