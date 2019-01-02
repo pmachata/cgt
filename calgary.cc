@@ -359,46 +359,45 @@ namespace
     die ("get_callee: unhandled code");
   }
 
-  tree
-  get_initializer (tree in)
+  void
+  walk_initializer (tree src, tree in, callgraph &cg)
   {
-    while (true)
-      {
-        if (TREE_CODE (in) == ADDR_EXPR
-            || TREE_CODE (in) == NOP_EXPR)
-          in = TREE_OPERAND (in, 0);
-        else
-          break;
-      }
-
     if (DECL_P (in))
-      return in;
+      return cg.add (src, in);
 
     switch (static_cast <int> (TREE_CODE (in)))
       {
+      case ADDR_EXPR: // Fall through.
+      case NOP_EXPR:
+        return walk_initializer (src, TREE_OPERAND (in, 0), cg);
+
       case CALL_EXPR:
         if (tree fn = CALL_EXPR_FN (in))
           {
             tree callee = get_callee (fn);
-            return DECL_RESULT (callee);
+            cg.add (src, DECL_RESULT (callee));
           }
-        return NULL_TREE;
+        return;
 
       case COMPONENT_REF:
         // Operand 1 is the field (a node of type FIELD_DECL).
-        return TREE_OPERAND (in, 1);
+        {
+          tree dst = TREE_OPERAND (in, 1);
+          cg.add (src, dst);
+        }
+        return;
 
       case ARRAY_REF:
         // Operand 0 is the array; operand 1 is a (single) array index.
-        return get_initializer (TREE_OPERAND (in, 0));
+        return walk_initializer (src, TREE_OPERAND (in, 0), cg);
 
       case INTEGER_CST:
         // This is likely NULL initialization.
-        return NULL_TREE;
+        return;
       }
 
     std::cerr << tcn (in) << std::endl;
-    die ("get_initializer: unhandled code");
+    die ("walk_initializer: unhandled code");
   }
 
   tree
@@ -463,8 +462,7 @@ namespace
         if (tree init = DECL_INITIAL (decl))
           {
             if (is_function_type (TREE_TYPE (decl)))
-              if (tree callee = get_initializer (init))
-                cg.add (decl, callee);
+              walk_initializer (decl, init, cg);
             walk (init, cg, level + 1);
           }
         return;
@@ -526,8 +524,7 @@ namespace
           ? callee_args[i] : NULL_TREE;
         if (callee_arg && (is_function_type (TREE_TYPE (callee_arg))
                            || is_function_type (TREE_TYPE (arg))))
-          if (tree callee = get_initializer (arg))
-            cg.add (callee_arg, callee);
+          walk_initializer (callee_arg, arg, cg);
 
         walk (arg, cg, level + 1);
       }
@@ -542,12 +539,11 @@ namespace
         for (unsigned i = 0; i < CONSTRUCTOR_NELTS (value); ++i)
           {
             constructor_elt *elt = CONSTRUCTOR_ELT (value, i);
-            if (tree callee = get_initializer (elt->value))
-              cg.add (index, callee);
+            walk_initializer (index, elt->value, cg);
           }
       }
-    else if (tree callee = get_initializer (value))
-      cg.add (index, callee);
+    else
+      walk_initializer (index, value, cg);
   }
 
   void
@@ -579,9 +575,8 @@ namespace
           if (is_function_type (TREE_TYPE (dst)))
             {
               tree val = TREE_OPERAND (t, 1);
-              if (tree callee = get_initializer (val))
-                if (tree dst2 = get_destination (dst))
-                  cg.add (dst2, callee);
+              if (tree dst2 = get_destination (dst))
+                walk_initializer (dst2, val, cg);
             }
         }
         return walk_operands (t, cg, level);
