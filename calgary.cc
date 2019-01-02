@@ -106,7 +106,8 @@ namespace
           && TREE_CODE (decl) == FUNCTION_DECL)
         {
           std::string ret;
-          if (tree ctx = DECL_CONTEXT (decl); TREE_CODE (ctx) == FUNCTION_DECL)
+          if (tree ctx = DECL_CONTEXT (decl);
+              ctx != NULL_TREE && TREE_CODE (ctx) == FUNCTION_DECL)
             ret += dump_fcontext (ctx);
           return ret + decl_name (decl) + "()::";
         }
@@ -377,6 +378,7 @@ namespace
 
   void walk (tree t, callgraph &cg, unsigned level = 0);
   void walk_call_expr (tree call_expr, tree fn, callgraph &cg, unsigned level);
+  void walk_initializer (tree src, tree in, callgraph &cg, unsigned level);
 
   void
   walk_operand (tree t, unsigned i, callgraph &cg, unsigned level,
@@ -384,6 +386,16 @@ namespace
   {
     if (tree ti = TREE_OPERAND (t, i))
       walk (ti, cg, level + 1);
+    else
+      assert (may_be_null);
+  }
+
+  void
+  walk_initializer_operand (tree src, tree in, unsigned i, callgraph &cg,
+                            unsigned level, bool may_be_null = false)
+  {
+    if (tree ti = TREE_OPERAND (in, i))
+      walk_initializer (src, ti, cg, level + 1);
     else
       assert (may_be_null);
   }
@@ -414,6 +426,7 @@ namespace
     switch (static_cast <int> (TREE_CODE (in)))
       {
       case ADDR_EXPR: // Fall through.
+      case SAVE_EXPR: // Fall through.
       case NOP_EXPR:
         return walk_initializer (src, TREE_OPERAND (in, 0), cg, level + 1);
 
@@ -439,6 +452,16 @@ namespace
 
       case INTEGER_CST:
         // This is likely NULL initialization.
+        return;
+
+      case COND_EXPR:
+        {
+          // A condition doesn't influence what the callee will be, so walk it
+          // normally. Dispatch to walk_initializer for the two branches.
+          walk_operand (in, 0, cg, level + 1);
+          walk_initializer_operand (src, in, 1, cg, level + 1);
+          walk_initializer_operand (src, in, 2, cg, level + 1, true);
+        }
         return;
       }
 
