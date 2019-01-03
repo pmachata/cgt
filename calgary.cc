@@ -6,9 +6,11 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <sstream>
 
 #include <gcc-plugin.h>
 #include <plugin-version.h>
+#include <stringpool.h>
 #include <tree.h>
 #include <tree-iterator.h>
 #include <tree-pass.h>
@@ -87,30 +89,87 @@ namespace
 
 namespace
 {
+  class decl_fab
+  {
+    // (callee, arg#) -> parm_decl
+    std::map <std::tuple <tree, unsigned>, tree> m_fab_decls;
+
+  public:
+    tree
+    get (unsigned i, tree type, tree callee)
+    {
+      auto it = m_fab_decls.find ({callee, i});
+      if (it == m_fab_decls.end ())
+        {
+          std::stringstream ss;
+          ss << "(arg:" << i << ')';
+          tree id = get_identifier (ss.str ().c_str ());
+
+          location_t loc = DECL_SOURCE_LOCATION (callee);
+          tree decl = build_decl (loc, PARM_DECL, id, type);
+          DECL_CONTEXT (decl) = callee;
+
+          it = m_fab_decls.insert (std::make_pair (std::make_tuple (callee, i),
+                                                   decl)).first;
+        }
+      return it->second;
+    }
+
+  };
+
   class callgraph
   {
   public:
     static constexpr unsigned NODE_DEF    = 1 << 0;
     static constexpr unsigned NODE_STATIC = 1 << 1;
 
+    class decl_fab &decl_fab;
+
   private:
     tree m_dfsrc;
     std::map <tree, unsigned> m_nodes; // All functions.
-    std::set <std::tuple <tree, tree>> m_edges; // (caller, callee)
+
+    // (caller, callee)
+    std::set <std::tuple <tree, tree>> m_edges;
+
+    // struct -> name
     std::map <tree, std::string> m_typedefs;
+
+    // xxx All this looks like it could be folded to one function that
+    // recursively traverses higher contexts and dumps each as necessary.
+    std::string dump_rcontext (tree record)
+    {
+      if (std::string name = type_name (record); name != "")
+        return name + "::";
+      else if (auto it = m_typedefs.find (record);
+               it != m_typedefs.end ())
+        return std::get <1> (*it) + "::";
+      else
+        die ("Unknown structure name");
+    }
 
     std::string
     dump_fcontext (tree decl)
     {
-      if (decl != NULL_TREE
-          && TREE_CODE (decl) == FUNCTION_DECL)
-        {
-          std::string ret;
-          if (tree ctx = DECL_CONTEXT (decl);
-              ctx != NULL_TREE && TREE_CODE (ctx) == FUNCTION_DECL)
-            ret += dump_fcontext (ctx);
-          return ret + decl_name (decl) + "()::";
-        }
+      if (decl != NULL_TREE)
+        switch (static_cast <int> (TREE_CODE (decl)))
+          {
+          case FUNCTION_DECL:
+            {
+              std::string ret;
+              if (tree ctx = DECL_CONTEXT (decl);
+                  ctx != NULL_TREE && TREE_CODE (ctx) == FUNCTION_DECL)
+                ret += dump_fcontext (ctx);
+              return ret + decl_name (decl) + "()::";
+            }
+
+          case FIELD_DECL: // Fall through.
+          case VAR_DECL:
+            // The callee is a fabricated function argument for calls to
+            // function pointers.
+            return dump_rcontext (DECL_CONTEXT (decl))
+                 + decl_name (decl) + "::";
+          }
       return "";
     }
 
@@ -122,19 +181,10 @@ namespace
       std::string ret = dump_fcontext (DECL_CONTEXT (callee));
 
       if (TREE_CODE (callee) == FIELD_DECL)
-        {
-          tree record = DECL_CONTEXT (callee);
-          if (std::string name = type_name (record); name != "")
-            ret += name + "::";
-          else if (auto it = m_typedefs.find (record);
-                   it != m_typedefs.end ())
-            ret += std::get <1> (*it) + "::";
-          else
-            die ("Unknown structure name");
-        }
+        ret += dump_rcontext (DECL_CONTEXT (callee));
 
       if (TREE_CODE (callee) == RESULT_DECL)
-        ret += "<ret>";
+        ret += "(ret)";
       else
         ret += decl_name (callee);
 
@@ -142,17 +192,16 @@ namespace
     }
 
   public:
-    explicit callgraph (tree dfsrc)
-      : m_dfsrc {dfsrc}
-    {}
-
-    callgraph ()
-      : callgraph (NULL_TREE)
+    explicit callgraph (class decl_fab &fab, tree dfsrc = NULL_TREE)
+      : decl_fab {fab}
+      , m_dfsrc {dfsrc}
     {}
 
     void
     add_node (tree node, unsigned flags)
     {
+      if (!true)
+        std::cerr << "add node:" << dump_callee (node) << std::endl;
       m_nodes[node] |= flags;
     }
 
@@ -376,6 +425,21 @@ namespace
     die ("get_destination: unhandled code");
   }
 
+  tree
+  translate_parm_decl (tree decl, callgraph &cg)
+  {
+    assert (TREE_CODE (decl) == PARM_DECL);
+
+    tree ctxfn = DECL_CONTEXT (decl);
+    unsigned j = 0;
+    for (tree a = DECL_ARGUMENTS (ctxfn); a != NULL_TREE;
+         a = TREE_CHAIN (a), j++)
+      if (a == decl)
+        return cg.decl_fab.get (j, TREE_TYPE (decl), ctxfn);
+
+    die ("translate_parm_decl: Can't determine parameter number");
+  }
+
   void walk (tree t, callgraph &cg, unsigned level = 0);
   void walk_call_expr (tree call_expr, tree fn, callgraph &cg, unsigned level);
   void walk_initializer (tree src, tree in, callgraph &cg, unsigned level);
@@ -424,7 +488,11 @@ namespace
       std::cerr << spaces (level) << "init:" << tcn (in) << std::endl;
 
     if (DECL_P (in))
-      return cg.add (src, in);
+      {
+        if (TREE_CODE (in) == PARM_DECL)
+          in = translate_parm_decl (in, cg);
+        return cg.add (src, in);
+      }
 
     switch (static_cast <int> (TREE_CODE (in)))
       {
@@ -515,42 +583,47 @@ namespace
 
     tree callee = get_callee (fn);
     assert (callee != NULL_TREE);
-    cg.add (callee);
 
-    // Arguments of the callee.
-    std::vector <tree> callee_args;
+    cg.add (TREE_CODE (callee) != PARM_DECL ? callee
+            : translate_parm_decl (callee, cg));
+
+    // Types of callee arguments.
+    std::vector <tree> callee_arg_types;
     if (TREE_CODE (callee) == FUNCTION_DECL)
       for (tree a = DECL_ARGUMENTS (callee); a; a = TREE_CHAIN (a))
-        callee_args.push_back (a);
-    else if (false)
+        callee_arg_types.push_back (TREE_TYPE (a));
+    else
       {
-        // xxx here we have _types_ available, but we need to encode
-        // parameter references. Looks like we need to stop refering to
-        // parameters by name and replace the references above with
-        // arg<0>, arg<1> etc., and here fabricate new nodes like that
-        // with types from TYPE_ARG_TYPES.
-        // xxx we'll need to do this anyway, because the parameter names
-        // may not match between the side that makes the call and the
-        // side that defines the actual callee.
-        tree callee_type = TREE_TYPE (callee);
-        if (TREE_CODE (callee_type) == POINTER_TYPE)
-          callee_type = TREE_TYPE (callee_type);
-        assert (TREE_CODE (callee_type) == FUNCTION_TYPE);
-        tree args = TYPE_ARG_TYPES (callee_type);
-        assert (args != NULL_TREE);
-        for (tree a = args; a; a = TREE_CHAIN (a))
-          callee_args.push_back (TREE_VALUE (a));
+        assert (DECL_P (callee));
+
+        tree type = TREE_TYPE (callee);
+        if (TREE_CODE (type) == POINTER_TYPE)
+          type = TREE_TYPE (type);
+        assert (TREE_CODE (type) == FUNCTION_TYPE);
+
+        for (tree a = TYPE_ARG_TYPES (type); a != NULL_TREE; a = TREE_CHAIN (a))
+          callee_arg_types.push_back (TREE_VALUE (a));
       }
 
     for (unsigned i = 0, nargs = call_expr_nargs (call_expr);
          i < nargs; ++i)
       {
         tree arg = CALL_EXPR_ARG (call_expr, i);
-        tree callee_arg = (i < callee_args.size ())
-          ? callee_args[i] : NULL_TREE;
-        if (callee_arg && (is_function_type (TREE_TYPE (callee_arg))
-                           || is_function_type (TREE_TYPE (arg))))
-          walk_initializer (callee_arg, arg, cg, level);
+
+        // Vararg functions have fewer formal arguments than actual ones.
+        // xxx The useful thing to do in that case would be something like:
+        //       foo()::<varargs> -> some_func
+        // And then when foo ends up calling through varargs, do:
+        //       foo -> foo()::<varargs>
+        // etc. for assignment or parameter passing.
+        if (i < callee_arg_types.size ())
+          {
+            tree callee_arg_type = callee_arg_types[i];
+            if (is_function_type (callee_arg_type)
+                || is_function_type (TREE_TYPE (arg)))
+              walk_initializer (cg.decl_fab.get (i, callee_arg_type, callee),
+                                arg, cg, level);
+          }
 
         walk (arg, cg, level + 1);
       }
@@ -719,11 +792,14 @@ namespace
 class calgary
 {
   std::ofstream m_ofs;
+  decl_fab m_fab;
   callgraph m_cg;
 
 public:
   explicit calgary (std::string ofn)
     : m_ofs {ofn}
+    , m_fab {}
+    , m_cg {m_fab}
   {}
 
   void
@@ -756,7 +832,7 @@ public:
 
     if (tree body = DECL_SAVED_TREE (fn))
       {
-        callgraph cg {fn};
+        callgraph cg {m_fab, fn};
         walk (body, cg);
         cg.propagate ();
         m_cg.merge (std::move (cg));
@@ -816,7 +892,7 @@ public:
 
     if (tree init = DECL_INITIAL (decl))
       {
-        callgraph cg {decl};
+        callgraph cg {m_fab, decl};
         walk (init, cg);
         cg.propagate ();
         m_cg.merge (std::move (cg));
