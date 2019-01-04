@@ -10,6 +10,7 @@
 
 #include <gcc-plugin.h>
 #include <plugin-version.h>
+#include <print-tree.h>
 #include <stringpool.h>
 #include <tree.h>
 #include <tree-iterator.h>
@@ -24,6 +25,15 @@ using namespace std::string_literals;
 
 namespace
 {
+  __attribute__ ((unused)) const char *
+  tcn (tree t)
+  {
+    if (t == NULL_TREE)
+      return "NULL_TREE";
+    else
+      return get_tree_code_name (TREE_CODE (t));
+  }
+
   // Resolve typedefs and cv-qualifiers.
   tree
   find_main_type (tree type)
@@ -68,15 +78,6 @@ namespace
     if (t != NULL_TREE)
       return IDENTIFIER_POINTER (t);
     return decl_name (decl);
-  }
-
-  __attribute__ ((unused)) const char *
-  tcn (tree t)
-  {
-    if (t == NULL_TREE)
-      return "NULL_TREE";
-    else
-      return get_tree_code_name (TREE_CODE (t));
   }
 
   void __attribute__ ((noreturn))
