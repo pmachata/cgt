@@ -24,14 +24,29 @@ using namespace std::string_literals;
 
 namespace
 {
+  // Resolve typedefs and cv-qualifiers.
+  tree
+  find_main_type (tree type)
+  {
+    assert (TYPE_P (type));
+
+    if (tree tn = TYPE_NAME (type))
+      if (TREE_CODE (tn) == TYPE_DECL)
+        return find_main_type (DECL_ORIGINAL_TYPE (tn));
+
+    return TYPE_MAIN_VARIANT (type);
+  }
+
   const char *
   type_name (tree type)
   {
     assert (TYPE_P (type));
-    tree t = TYPE_NAME (type);
-    if (t != NULL_TREE)
-      return IDENTIFIER_POINTER (t);
-    return "";
+    tree tn = TYPE_NAME (find_main_type (type));
+    if (tn == NULL_TREE)
+      return "";
+
+    assert (TREE_CODE (tn) == IDENTIFIER_NODE);
+    return IDENTIFIER_POINTER (tn);
   }
 
   const char *
