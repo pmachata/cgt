@@ -1,0 +1,7 @@
+F ./cases/anon_struct_var.c
+1797 (8) @decl foo_t::cb 1793
+1803 (18) @decl .s_t::cb 1793
+1807 (26) @decl .s_t_2::cb_2 1793
+1793 (1) cb
+1810 (29) foo2
+1813 (34) bar 1803 1807

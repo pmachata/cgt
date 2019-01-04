@@ -242,13 +242,11 @@ namespace
     }
 
     void
-    add_typedef (tree decl)
+    add_typename (tree type, std::string name)
     {
-      assert (TREE_CODE (decl) == TYPE_DECL);
-
       // xxx is it guaranteed that names are going to be the same between
       // compilation units?
-      m_typedefs[DECL_ORIGINAL_TYPE (decl)] = decl_name (decl);
+      m_typedefs.insert ({type, name}).second;
     }
 
     static std::pair <const char *, unsigned>
@@ -886,6 +884,12 @@ public:
         if (tree context = DECL_CONTEXT (decl))
           if (TREE_CODE (context) == FUNCTION_DECL)
             return;
+
+        // A variable name may be used as an identifier of an anonymous
+        // structure as well.
+        if (tree type = TREE_TYPE (decl);
+            type_name (type) == ""s)
+          m_cg.add_typename (find_main_type (type), "."s + decl_name (decl));
         break;
 
       case FUNCTION_DECL:
@@ -894,7 +898,8 @@ public:
         return;
 
       case TYPE_DECL:
-        m_cg.add_typedef (decl);
+        if (tree type = DECL_ORIGINAL_TYPE (decl))
+          m_cg.add_typename (find_main_type (type), decl_name (decl));
         return;
 
       default:
