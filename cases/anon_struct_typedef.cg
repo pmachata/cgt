@@ -1,5 +1,5 @@
 F ./cases/anon_struct_typedef.c
-1794 (3) @decl s_t::cb 1797
-1797 (6) cb
-1800 (11) foo
-1803 (16) bar 1794
+1794 (3) @decl s_t::cb 1798
+1798 (8) cb
+1801 (13) foo
+1804 (18) bar 1794
