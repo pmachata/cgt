@@ -42,7 +42,8 @@ namespace
 
     if (tree tn = TYPE_NAME (type))
       if (TREE_CODE (tn) == TYPE_DECL)
-        return find_main_type (DECL_ORIGINAL_TYPE (tn));
+        if (tree orig = DECL_ORIGINAL_TYPE (tn))
+          return find_main_type (orig);
 
     return TYPE_MAIN_VARIANT (type);
   }
