@@ -53,6 +53,12 @@ namespace
   {
     assert (TYPE_P (type));
     tree tn = TYPE_NAME (find_main_type (type));
+
+    // Builtins may have a DECL_ORIGINAL_TYPE of NULL_TREE and can't thus be
+    // fully resolved. Therefore, tolerate TYPE_DECL names here.
+    if (tn != NULL_TREE && TREE_CODE (tn) == TYPE_DECL)
+      tn = DECL_NAME (tn);
+
     if (tn == NULL_TREE)
       return "";
 
