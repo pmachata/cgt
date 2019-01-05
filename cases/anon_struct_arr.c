@@ -20,3 +20,16 @@ int bar(void)
 {
     return s_t[0].cb() + s_t[1].cb();
 }
+
+int baz(void)
+{
+    static const struct
+    {
+        int (*cb)(void);
+    } meh[] = {
+        { .cb = ab },
+        { .cb = cb },
+    };
+
+    return meh[0].cb() + meh[1].cb();
+}

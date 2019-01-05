@@ -152,6 +152,7 @@ namespace
     // struct -> name
     std::map <tree, std::string> m_typedefs;
 
+  public:
     // xxx All this looks like it could be folded to one function that
     // recursively traverses higher contexts and dumps each as necessary.
     std::string dump_rcontext (tree record)
@@ -208,7 +209,6 @@ namespace
       return ret;
     }
 
-  public:
     explicit callgraph (class decl_fab &fab, tree dfsrc = NULL_TREE)
       : decl_fab {fab}
       , m_dfsrc {dfsrc}
@@ -896,16 +896,30 @@ public:
     switch (static_cast <int> (TREE_CODE (decl)))
       {
       case VAR_DECL:
-        // Local variables are processed when walking the function body.
-        if (tree context = DECL_CONTEXT (decl))
-          if (TREE_CODE (context) == FUNCTION_DECL)
-            return;
-
         // A variable name may be used as an identifier of an anonymous
         // structure as well.
         if (tree type = find_record_type (TREE_TYPE (decl)))
           if (type_name (type) == ""s)
-            m_cg.add_typename (find_main_type (type), "."s + decl_name (decl));
+            {
+              // When a variable is used as a context (whether it's global or
+              // local), we need to mangle it, so that a type:: doesn't clash
+              // with a var::.
+              //
+              // Local variables on their own never get to the final call graph,
+              // so their name is irrelevant. For global variables, it's better
+              // if the name stays unmangled. Therefore just mangle here,
+              // instead of doing it in dump_callee.
+              std::string prefix;
+              if (tree context = DECL_CONTEXT (decl))
+                prefix = m_cg.dump_fcontext (context);
+              m_cg.add_typename (find_main_type (type),
+                                 prefix + "."s + decl_name (decl));
+            }
+
+        // Local variables are processed when walking the function body.
+        if (tree context = DECL_CONTEXT (decl))
+          if (TREE_CODE (context) == FUNCTION_DECL)
+            return;
         break;
 
       case FUNCTION_DECL:

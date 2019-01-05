@@ -1,5 +1,7 @@
 F ./cases/anon_struct_arr.c
 1800 (13) @decl .s_t::cb 1793 1796
+1810 (28) @decl baz()::.meh::cb 1793 1796
 1793 (1) ab
 1796 (6) cb
 1803 (19) bar 1800
+1806 (24) baz 1810
