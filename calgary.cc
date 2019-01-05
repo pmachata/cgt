@@ -387,7 +387,6 @@ namespace
   {
     assert (TYPE_P (t));
 
-    // xxx cv-qual
     switch (static_cast <int> (TREE_CODE (t)))
     case POINTER_TYPE:
     case ARRAY_TYPE:
