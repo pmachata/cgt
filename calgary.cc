@@ -453,6 +453,22 @@ namespace
     die ("translate_parm_decl: Can't determine parameter number");
   }
 
+  tree
+  find_record_type (tree type)
+  {
+    assert (TYPE_P (type));
+
+    switch (static_cast <int> (TREE_CODE (type)))
+      {
+      case RECORD_TYPE:
+        return type;
+      case ARRAY_TYPE:
+        return find_record_type (TREE_TYPE (type));
+      }
+
+    return NULL_TREE;
+  }
+
   void walk (tree t, callgraph &cg, unsigned level = 0);
   void walk_call_expr (tree call_expr, tree fn, callgraph &cg, unsigned level);
   void walk_initializer (tree src, tree in, callgraph &cg, unsigned level);
@@ -886,9 +902,9 @@ public:
 
         // A variable name may be used as an identifier of an anonymous
         // structure as well.
-        if (tree type = TREE_TYPE (decl);
-            type_name (type) == ""s)
-          m_cg.add_typename (find_main_type (type), "."s + decl_name (decl));
+        if (tree type = find_record_type (TREE_TYPE (decl)))
+          if (type_name (type) == ""s)
+            m_cg.add_typename (find_main_type (type), "."s + decl_name (decl));
         break;
 
       case FUNCTION_DECL:
