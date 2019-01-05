@@ -579,6 +579,8 @@ namespace
   void
   walk_decl (tree decl, callgraph &cg, unsigned level)
   {
+    if (!true)
+      std::cerr << spaces (level) << "decl:" << tcn (decl) << std::endl;
     assert (DECL_P (decl));
 
     switch (static_cast <int> (TREE_CODE (decl)))
@@ -592,7 +594,7 @@ namespace
         if (tree init = DECL_INITIAL (decl))
           {
             if (is_function_type (TREE_TYPE (decl)))
-              walk_initializer (decl, init, cg, level);
+              walk_initializer (decl, init, cg, level + 1);
             walk (init, cg, level + 1);
           }
         return;
@@ -674,11 +676,11 @@ namespace
         for (unsigned i = 0; i < CONSTRUCTOR_NELTS (value); ++i)
           {
             constructor_elt *elt = CONSTRUCTOR_ELT (value, i);
-            walk_initializer (index, elt->value, cg, level);
+            walk_initializer (index, elt->value, cg, level + 1);
           }
       }
     else
-      walk_initializer (index, value, cg, level);
+      walk_initializer (index, value, cg, level + 1);
   }
 
   void
