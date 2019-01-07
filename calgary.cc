@@ -156,7 +156,7 @@ namespace
     std::set <std::tuple <tree, tree>> m_edges;
 
     // struct -> name
-    std::map <tree, std::string> m_typedefs;
+    std::map <tree, std::string> &m_typedefs;
 
   public:
     // xxx All this looks like it could be folded to one function that
@@ -215,9 +215,12 @@ namespace
       return ret;
     }
 
-    explicit callgraph (class decl_fab &fab, tree dfsrc = NULL_TREE)
+    explicit callgraph (class decl_fab &fab,
+                        std::map <tree, std::string> &typedefs,
+                        tree dfsrc = NULL_TREE)
       : decl_fab {fab}
       , m_dfsrc {dfsrc}
+      , m_typedefs {typedefs}
     {}
 
     void
@@ -831,13 +834,14 @@ class calgary
 {
   std::ofstream m_ofs;
   decl_fab m_fab;
+  std::map <tree, std::string> m_typedefs;
   callgraph m_cg;
 
 public:
   explicit calgary (std::string ofn)
     : m_ofs {ofn}
     , m_fab {}
-    , m_cg {m_fab}
+    , m_cg {m_fab, m_typedefs}
   {}
 
   void
@@ -870,7 +874,7 @@ public:
 
     if (tree body = DECL_SAVED_TREE (fn))
       {
-        callgraph cg {m_fab, fn};
+        callgraph cg {m_fab, m_typedefs, fn};
         walk (body, cg);
         cg.propagate ();
         m_cg.merge (std::move (cg));
@@ -951,7 +955,7 @@ public:
 
     if (tree init = DECL_INITIAL (decl))
       {
-        callgraph cg {m_fab, decl};
+        callgraph cg {m_fab, m_typedefs, decl};
         walk (init, cg);
         cg.propagate ();
         m_cg.merge (std::move (cg));
