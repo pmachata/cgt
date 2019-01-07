@@ -45,7 +45,7 @@ calgary.so: calgary.cc
 cgrtest-%: CF = ./cases/$*.c
 cgrtest-%: CGF = ./cases/$*.cg
 cgrtest-%:
-	@echo $*
+	@echo Test $*
 	@$(CC) -fplugin=$(shell pwd)/calgary.so -fplugin-arg-calgary-o=tmp -c $(CF)
 	@if [ -f $(CGF) ]; then			\
 		diff -u tmp $(CGF) || exit 1;	\
