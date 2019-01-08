@@ -226,6 +226,7 @@ namespace
     void
     add_node (tree node, unsigned flags)
     {
+      assert (node != NULL_TREE);
       if (!true)
         std::cerr << "add node:" << dump_callee (node) << std::endl;
       m_nodes[node] |= flags;
@@ -240,6 +241,9 @@ namespace
     void
     add (tree src, tree dst)
     {
+      assert (src != NULL_TREE);
+      assert (dst != NULL_TREE);
+
       // Make sure non-function nodes are added as well.
       add_node (src, 0);
       add_node (dst, 0);
@@ -479,104 +483,36 @@ namespace
     return NULL_TREE;
   }
 
-  void walk (tree t, callgraph &cg, unsigned level = 0);
-  void walk_call_expr (tree call_expr, tree fn, callgraph &cg, unsigned level);
-  void walk_initializer (tree src, tree in, callgraph &cg, unsigned level);
+  void walk (tree src, tree t, callgraph &cg, unsigned level = 0);
+  void walk_call_expr (tree src, tree call_expr, tree fn, callgraph &cg,
+                       unsigned level);
 
   void
-  walk_operand (tree t, unsigned i, callgraph &cg, unsigned level,
+  walk_operand (tree src, tree t, unsigned i, callgraph &cg, unsigned level,
                 bool may_be_null = false)
   {
     if (tree ti = TREE_OPERAND (t, i))
-      walk (ti, cg, level + 1);
+      walk (src, ti, cg, level + 1);
     else
       assert (may_be_null);
   }
 
   void
-  walk_initializer_operand (tree src, tree in, unsigned i, callgraph &cg,
-                            unsigned level, bool may_be_null = false)
-  {
-    if (tree ti = TREE_OPERAND (in, i))
-      walk_initializer (src, ti, cg, level + 1);
-    else
-      assert (may_be_null);
-  }
-
-  void
-  walk_call_expr_operand (tree call_expr, tree fn, unsigned i, callgraph &cg,
+  walk_call_expr_operand (tree src, tree call_expr, tree fn, unsigned i,
+                          callgraph &cg,
                           unsigned level, bool may_be_null = false)
   {
     if (tree ti = TREE_OPERAND (fn, i))
-      walk_call_expr (call_expr, ti, cg, level + 1);
+      walk_call_expr (src, call_expr, ti, cg, level + 1);
     else
       assert (may_be_null);
   }
 
   void
-  walk_operands (tree t, callgraph &cg, unsigned level)
+  walk_operands (tree src, tree t, callgraph &cg, unsigned level)
   {
     for (int i = 0; i < tree_operand_length (t); ++i)
-      walk_operand (t, i, cg, level + 1);
-  }
-
-  void
-  walk_initializer (tree src, tree in, callgraph &cg, unsigned level)
-  {
-    if (!true)
-      std::cerr << spaces (level) << "init:" << tcn (in) << std::endl;
-
-    if (DECL_P (in))
-      {
-        if (TREE_CODE (in) == PARM_DECL)
-          in = translate_parm_decl (in, cg);
-        return cg.add (src, in);
-      }
-
-    switch (static_cast <int> (TREE_CODE (in)))
-      {
-      case ADDR_EXPR: // Fall through.
-      case SAVE_EXPR: // Fall through.
-      case NOP_EXPR:
-        return walk_initializer (src, TREE_OPERAND (in, 0), cg, level + 1);
-
-      case CALL_EXPR:
-        if (tree fn = CALL_EXPR_FN (in))
-          {
-            tree callee = get_callee (fn);
-            cg.add (src, DECL_RESULT (callee));
-          }
-        return;
-
-      case COMPONENT_REF:
-        // Operand 1 is the field (a node of type FIELD_DECL).
-        {
-          tree dst = TREE_OPERAND (in, 1);
-          cg.add (src, dst);
-        }
-        return;
-
-      case ARRAY_REF:
-        // Operand 0 is the array; operand 1 is a (single) array index.
-        return walk_initializer (src, TREE_OPERAND (in, 0), cg, level + 1);
-
-      case INTEGER_CST:
-        // This is likely NULL initialization.
-        return;
-
-      case COND_EXPR:
-        {
-          // A condition doesn't influence what the callee will be, so walk it
-          // normally. Dispatch to walk_initializer for the two branches.
-          walk_operand (in, 0, cg, level + 1);
-          walk_initializer_operand (src, in, 1, cg, level + 1);
-          walk_initializer_operand (src, in, 2, cg, level + 1, true);
-        }
-        return;
-      }
-
-    std::cerr << tcn (in) << std::endl;
-    die ("walk_initializer: unhandled code");
+      walk_operand (src, t, i, cg, level + 1);
   }
 
   void
@@ -595,11 +531,7 @@ namespace
         return;
       case VAR_DECL:
         if (tree init = DECL_INITIAL (decl))
-          {
-            if (is_function_type (TREE_TYPE (decl)))
-              walk_initializer (decl, init, cg, level + 1);
-            walk (init, cg, level + 1);
-          }
+          walk (decl, init, cg, level + 1);
         return;
       }
 
@@ -608,7 +540,8 @@ namespace
   }
 
   void
-  walk_call_expr (tree call_expr, tree fn, callgraph &cg, unsigned level)
+  walk_call_expr (tree src, tree call_expr, tree fn, callgraph &cg,
+                  unsigned level)
   {
     if (!true)
       std::cerr << spaces (level) << "call:" << tcn (fn) << std::endl;
@@ -616,9 +549,9 @@ namespace
       {
         // A condition doesn't influence what the callee will be, so walk it
         // normally. Dispatch to walk_call_expr for the then and else branches.
-        walk_operand (fn, 0, cg, level + 1);
-        walk_call_expr_operand (call_expr, fn, 1, cg, level + 1);
-        walk_call_expr_operand (call_expr, fn, 2, cg, level + 1, true);
+        walk_operand (src, fn, 0, cg, level + 1);
+        walk_call_expr_operand (src, call_expr, fn, 1, cg, level + 1);
+        walk_call_expr_operand (src, call_expr, fn, 2, cg, level + 1, true);
         return;
       }
 
@@ -627,6 +560,11 @@ namespace
 
     cg.add (TREE_CODE (callee) != PARM_DECL ? callee
             : translate_parm_decl (callee, cg));
+    if (src != NULL_TREE)
+      // Returns function pointer?
+      if (tree callee_type = TREE_TYPE (callee);
+          is_function_type (TREE_TYPE (callee_type)))
+        cg.add (src, DECL_RESULT (callee));
 
     // Types of callee arguments.
     std::vector <tree> callee_arg_types;
@@ -657,44 +595,33 @@ namespace
         // And then when foo ends up calling through varargs, do:
         //       foo -> foo()::<varargs>
         // etc. for assignment or parameter passing.
+        tree src2 = NULL;
         if (i < callee_arg_types.size ())
           {
             tree callee_arg_type = callee_arg_types[i];
             if (is_function_type (callee_arg_type)
                 || is_function_type (TREE_TYPE (arg)))
-              walk_initializer (cg.decl_fab.get (i, callee_arg_type, callee),
-                                arg, cg, level);
+              src2 = cg.decl_fab.get (i, callee_arg_type, callee);
           }
 
-        walk (arg, cg, level + 1);
+        walk (src2, arg, cg, level + 1);
       }
   }
 
   void
-  walk_function_type (tree index, tree value, callgraph &cg, unsigned level)
-  {
-    if (TREE_CODE (value) == CONSTRUCTOR)
-      {
-        // Constructor of an array of function type.
-        for (unsigned i = 0; i < CONSTRUCTOR_NELTS (value); ++i)
-          {
-            constructor_elt *elt = CONSTRUCTOR_ELT (value, i);
-            walk_initializer (index, elt->value, cg, level + 1);
-          }
-      }
-    else
-      walk_initializer (index, value, cg, level + 1);
-  }
-
-  void
-  walk (tree t, callgraph &cg, unsigned level)
+  walk (tree src, tree t, callgraph &cg, unsigned level)
   {
     if (!true)
       std::cerr << spaces (level) << tcn (t) << std::endl;
 
-    // Declarations are processed in __finish_decl.
     if (DECL_P (t))
-      return;
+      {
+        if (TREE_CODE (t) == PARM_DECL)
+          t = translate_parm_decl (t, cg);
+        if (src != NULL_TREE)
+          cg.add (src, t);
+        return;
+      }
 
     if (CONSTANT_CLASS_P (t))
       return;
@@ -703,40 +630,44 @@ namespace
       {
       case CALL_EXPR:
         if (tree fn = CALL_EXPR_FN (t))
-          walk_call_expr (t, fn, cg, level + 1);
+          walk_call_expr (src, t, fn, cg, level + 1);
         return;
 
       case DECL_EXPR:
-        return walk_decl (DECL_EXPR_DECL (t), cg, level);
+        return walk_decl (DECL_EXPR_DECL (t), cg, level + 1);
 
       case MODIFY_EXPR:
-        {
-          tree dst = TREE_OPERAND (t, 0);
-          if (is_function_type (TREE_TYPE (dst)))
-            {
-              tree val = TREE_OPERAND (t, 1);
-              if (tree dst2 = get_destination (dst))
-                walk_initializer (dst2, val, cg, level);
-            }
-        }
-        return walk_operands (t, cg, level);
+        // Operand 0 is the what to set; 1, the new value.
+        walk (src, TREE_OPERAND (t, 1), cg, level + 1);
+        // If operand 0 is interesting, rerun with a new src. That's currently
+        // the only way to add an edge from two sources.
+        if (tree dst = TREE_OPERAND (t, 0);
+            is_function_type (TREE_TYPE (dst)))
+          if (tree dst2 = get_destination (dst))
+            walk (dst2, TREE_OPERAND (t, 1), cg, level + 1);
+        return;
+
+      case ADDR_EXPR: // Fall through.
+      case SAVE_EXPR: // Fall through.
+      case NOP_EXPR:
+        return walk_operand (src, t, 0, cg, level + 1);
 
       case COND_EXPR:
         // Operand 0 is the condition.
         // Operand 1 is the then-value.
         // Operand 2 is the else-value.
-        walk_operand (t, 0, cg, level);
-        walk_operand (t, 1, cg, level);
-        walk_operand (t, 2, cg, level, true);
+        walk_operand (src, t, 0, cg, level);
+        walk_operand (src, t, 1, cg, level);
+        walk_operand (src, t, 2, cg, level, true);
         return;
 
       case SWITCH_EXPR:
         // Operand 0 is the expression used to perform the branch,
         // Operand 1 is the body of the switch. It may also be NULL.
         // Operand 2 is either NULL_TREE or a TREE_VEC of the CASE_LABEL_EXPRs
-        walk_operand (t, 0, cg, level);
-        walk_operand (t, 1, cg, level, true);
-        walk_operand (t, 2, cg, level, true);
+        walk_operand (src, t, 0, cg, level);
+        walk_operand (src, t, 1, cg, level, true);
+        walk_operand (src, t, 2, cg, level, true);
         return;
 
       case CASE_LABEL_EXPR:
@@ -744,78 +675,87 @@ namespace
         // Operand 1 is CASE_HIGH.  If it is NULL_TREE [...]
         // Operand 2 is CASE_LABEL, which is is the corresponding LABEL_DECL.
         // Operand 3 is CASE_CHAIN. This operand is only used in tree-cfg.c
-        walk_operand (t, 0, cg, level, true);
-        walk_operand (t, 1, cg, level, true);
+        walk_operand (src, t, 0, cg, level, true);
+        walk_operand (src, t, 1, cg, level, true);
         return;
 
       case TARGET_EXPR:
         // operand 1 is the initializer for the target, which may be void
         // operand 2 is the cleanup for this node, if any.
         // operand 3 is the saved initializer after this node has been expanded
-        walk_operand (t, 0, cg, level, true);
-        walk_operand (t, 1, cg, level, true);
-        walk_operand (t, 2, cg, level, true);
+        walk_operand (src, t, 0, cg, level, true);
+        walk_operand (src, t, 1, cg, level, true);
+        walk_operand (src, t, 2, cg, level, true);
         return;
 
       case ASM_EXPR:
         for (tree list = ASM_OUTPUTS (t); list != NULL_TREE;
              list = TREE_CHAIN (list))
-          walk (TREE_VALUE (list), cg, level + 1);
+          walk (src, TREE_VALUE (list), cg, level + 1);
         for (tree list = ASM_INPUTS (t); list != NULL_TREE;
              list = TREE_CHAIN (list))
-          walk (TREE_VALUE (list), cg, level + 1);
+          walk (src, TREE_VALUE (list), cg, level + 1);
         for (tree list = ASM_CLOBBERS (t); list != NULL_TREE;
              list = TREE_CHAIN (list))
-          walk (TREE_VALUE (list), cg, level + 1);
+          walk (src, TREE_VALUE (list), cg, level + 1);
         return;
 
       case RETURN_EXPR:
         // RETURN.  Evaluates operand 0, then returns from the current function.
         // The operand may be null.
-        return walk_operand (t, 0, cg, level, true);
+        return walk_operand (src, t, 0, cg, level, true);
 
       case CONSTRUCTOR:
         for (unsigned i = 0; i < CONSTRUCTOR_NELTS (t); ++i)
           {
             constructor_elt *elt = CONSTRUCTOR_ELT (t, i);
-            tree type = TREE_TYPE (elt->index);
-            if (is_function_type (type))
-              walk_function_type (elt->index, elt->value, cg, level);
-
-            walk (elt->index, cg, level + 1);
-            walk (elt->value, cg, level + 1);
+            tree src2 = src;
+            if (tree type = TREE_TYPE (elt->index);
+                is_function_type (type))
+              // Constructor index is a function type: initializing a field in a
+              // structure.
+              src2 = elt->index;
+            walk (NULL_TREE, elt->index, cg, level + 1);
+            walk (src2, elt->value, cg, level + 1);
           }
         return;
 
       case BIND_EXPR:
         {
           tree body = BIND_EXPR_BODY (t);
-          return walk (body, cg, level + 1);
+          return walk (src, body, cg, level + 1);
         }
 
       case IMAGPART_EXPR: // Fall through.
       case REALPART_EXPR:
-        return walk_operand (t, 0, cg, level);
+        return walk_operand (src, t, 0, cg, level);
 
       case STATEMENT_LIST:
         for (tree_stmt_iterator it = tsi_start (t); !tsi_end_p (it);
              tsi_next (&it))
-          walk (tsi_stmt (it), cg, level + 1);
+          walk (src, tsi_stmt (it), cg, level + 1);
         return;
 
       case INDIRECT_REF:
         // One operand, an expression for a pointer.
-        return walk_operand (t, 0, cg, level);
+        return walk_operand (src, t, 0, cg, level);
 
       case COMPONENT_REF: // Fall through.
       case BIT_FIELD_REF:
         // Operand 0 is the structure or union expression;
-        return walk_operand (t, 0, cg, level);
+        walk_operand (NULL_TREE, t, 0, cg, level);
+
+        // Operand 1 is the field (a node of type FIELD_DECL).
+        if (src != NULL_TREE)
+          if (tree dst = TREE_OPERAND (t, 1);
+              is_function_type (TREE_TYPE (dst)))
+            cg.add (src, dst);
+        return;
 
       case ARRAY_REF:
         // Operand 0 is the array; operand 1 is a (single) array index.
-        walk_operand (t, 0, cg, level);
-        walk_operand (t, 1, cg, level);
+        walk_operand (src, t, 0, cg, level);
+        walk_operand (src, t, 1, cg, level);
         return;
       }
 
@@ -824,8 +764,9 @@ namespace
         || BINARY_CLASS_P (t)
         || EXPRESSION_CLASS_P (t)
         || STATEMENT_CLASS_P (t))
-      return walk_operands (t, cg, level);
+      return walk_operands (src, t, cg, level);
 
+    std::cerr << tcn (t) << std::endl;
     die ("unhandled node");
   }
 }
@@ -875,7 +816,7 @@ public:
     if (tree body = DECL_SAVED_TREE (fn))
       {
         callgraph cg {m_fab, m_typedefs, fn};
-        walk (body, cg);
+        walk (NULL_TREE, body, cg);
         cg.propagate ();
         m_cg.merge (std::move (cg));
       }
@@ -953,10 +894,10 @@ public:
                 << decl_name (decl) << std::endl
                 << "-------------\n";
 
-    if (tree init = DECL_INITIAL (decl))
+    if (DECL_INITIAL (decl))
       {
         callgraph cg {m_fab, m_typedefs, decl};
-        walk (init, cg);
+        walk_decl (decl, cg, 0);
         cg.propagate ();
         m_cg.merge (std::move (cg));
       }
