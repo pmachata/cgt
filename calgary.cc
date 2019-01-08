@@ -396,17 +396,27 @@ namespace
     }
   };
 
-  bool
-  is_function_type (tree t)
+  tree
+  get_function_type (tree t)
   {
     assert (TYPE_P (t));
 
     switch (static_cast <int> (TREE_CODE (t)))
-    case POINTER_TYPE:
-    case ARRAY_TYPE:
-      return is_function_type (TREE_TYPE (t));
+      {
+      case POINTER_TYPE:
+      case ARRAY_TYPE:
+        return get_function_type (TREE_TYPE (t));
+      case FUNCTION_TYPE:
+        return t;
+      default:
+        return NULL_TREE;
+      }
+  }
 
-    return TREE_CODE (t) == FUNCTION_TYPE;
+  bool
+  is_function_type (tree t)
+  {
+    return get_function_type (t) != NULL_TREE;
   }
 
   tree
