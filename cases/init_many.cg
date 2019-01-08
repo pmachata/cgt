@@ -1,0 +1,6 @@
+F ./cases/init_many.c
+1793 (1) f
+1800 (6) foo 1796 1798
+1803 (11) main
+1796 (3) @decl fp1 1793
+1798 (4) @decl fp2 1793
