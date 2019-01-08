@@ -117,6 +117,9 @@ namespace
     // (callee, arg#) -> parm_decl
     std::map <std::tuple <tree, unsigned>, tree> m_fab_decls;
 
+    // callee -> result_decl
+    std::map <tree, tree> m_fab_results;
+
   public:
     tree
     get (unsigned i, tree type, tree callee)
@@ -138,6 +141,23 @@ namespace
       return it->second;
     }
 
+    tree
+    get_result_decl (tree callee)
+    {
+      auto it = m_fab_results.find (callee);
+      if (it == m_fab_results.end ())
+        {
+          // This is what C and C++ front ends do.
+          location_t loc = DECL_SOURCE_LOCATION (callee);
+          tree restype = TREE_TYPE (TREE_TYPE (callee));
+          tree resdecl = build_decl (loc, RESULT_DECL, NULL_TREE, restype);
+          DECL_CONTEXT (resdecl) = callee;
+          DECL_ARTIFICIAL (resdecl) = 1;
+          DECL_IGNORED_P (resdecl) = 1;
+          it = m_fab_results.insert (std::make_pair (callee, resdecl)).first;
+        }
+      return it->second;
+    }
   };
 
   class callgraph
@@ -478,6 +498,26 @@ namespace
   }
 
   tree
+  get_result_decl (tree callee, callgraph &cg)
+  {
+    switch (static_cast <int> (TREE_CODE (callee)))
+      {
+      case FUNCTION_DECL:
+        if (tree result = DECL_RESULT (callee))
+          return result;
+
+        // Fall through.
+
+      case PARM_DECL:
+      case VAR_DECL:
+      case FIELD_DECL:
+        return cg.decl_fab.get_result_decl (callee);
+      }
+
+    die ("get_result_decl: Unhandled code");
+  }
+
+  tree
   find_record_type (tree type)
   {
     assert (TYPE_P (type));
@@ -574,7 +614,7 @@ namespace
       // Returns function pointer?
       if (tree callee_type = TREE_TYPE (callee);
           is_function_type (TREE_TYPE (callee_type)))
-        cg.add (src, DECL_RESULT (callee));
+        cg.add (src, get_result_decl (callee, cg));
 
     // Types of callee arguments.
     std::vector <tree> callee_arg_types;
