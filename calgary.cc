@@ -410,12 +410,8 @@ namespace
   }
 
   tree
-  get_callee (tree fn)
+  get_callee (tree t)
   {
-    tree t = fn;
-    if (TREE_CODE (fn) == ADDR_EXPR)
-      t = TREE_OPERAND (fn, 0);
-
     switch (static_cast <int> (TREE_CODE (t)))
       {
       case PARM_DECL:
@@ -426,6 +422,10 @@ namespace
       case COMPONENT_REF:
         // Operand 1 is the field (a node of type FIELD_DECL).
         return TREE_OPERAND (t, 1);
+
+      case ADDR_EXPR:
+        // Operand 0 is the address at which the operand's value resides.
+        return get_callee (TREE_OPERAND (t, 0));
 
       case ARRAY_REF:
         // Operand 0 is the array; operand 1 is a (single) array index.
