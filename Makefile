@@ -48,7 +48,7 @@ cgrtest-%:
 	@echo Test $*
 	@$(CC) -fplugin=$(shell pwd)/calgary.so -fplugin-arg-calgary-o=tmp -c $(CF)
 	@if [ -f $(CGF) ]; then			\
-		diff -u tmp $(CGF) || exit 1;	\
+		diff -u $(CGF) tmp || exit 1;	\
 	fi
 	@rm tmp
 .PHONY: cgrtest-%
