@@ -1,0 +1,5 @@
+F ./cases/call_array.c
+1793 (1) f
+1796 (2) g
+1801 (6) foo 1799
+1799 (4) @decl fps 1793 1796

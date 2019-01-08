@@ -586,11 +586,10 @@ namespace
         assert (DECL_P (callee));
 
         tree type = TREE_TYPE (callee);
-        if (TREE_CODE (type) == POINTER_TYPE)
-          type = TREE_TYPE (type);
-        assert (TREE_CODE (type) == FUNCTION_TYPE);
+        tree fn_type = get_function_type (type);
+        assert (fn_type != NULL_TREE);
 
-        for (tree a = TYPE_ARG_TYPES (type); a != NULL_TREE; a = TREE_CHAIN (a))
+        for (tree a = TYPE_ARG_TYPES (fn_type); a != NULL_TREE; a = TREE_CHAIN (a))
           callee_arg_types.push_back (TREE_VALUE (a));
       }
 
