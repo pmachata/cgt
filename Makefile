@@ -42,11 +42,13 @@ calgary.so: CXXFLAGS += -std=c++17
 calgary.so: calgary.cc
 	$(CXX) -I$(shell $(CXX) -print-file-name=plugin/include) $(CXXFLAGS) -shared -fpic -fno-rtti $^ -o $@
 
+cgrtest-%: TEST_CFLAGS = $(shell grep ^//: ./cases/$*.c | cut -d' ' -f 2-)
 cgrtest-%: CF = ./cases/$*.c
 cgrtest-%: CGF = ./cases/$*.cg
 cgrtest-%:
 	@echo -n Test $*
-	@$(CC) -fplugin=$(shell pwd)/calgary.so -fplugin-arg-calgary-o=tmp -c $(CF)
+	@$(CC) -c $(CF) $(TEST_CFLAGS) \
+		-fplugin=$(shell pwd)/calgary.so -fplugin-arg-calgary-o=tmp
 	@if [ -f $(CGF) ]; then			\
 		echo -n " (diff)";		\
 		diff -u $(CGF) tmp || exit 1;	\
