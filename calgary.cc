@@ -18,6 +18,7 @@
 #include <tree-pretty-print.h>
 #include <context.h>
 #include <cgraph.h>
+#include <output.h>
 
 int plugin_is_GPL_compatible;
 
@@ -827,15 +828,14 @@ namespace
 
 class calgary
 {
-  std::ofstream m_ofs;
+  std::stringstream m_ofs;
   decl_fab m_fab;
   std::map <tree, std::string> m_typedefs;
   callgraph m_cg;
 
 public:
-  explicit calgary (std::string ofn)
-    : m_ofs {ofn}
-    , m_fab {}
+  explicit calgary ()
+    : m_fab {}
     , m_cg {m_fab, m_typedefs}
   {}
 
@@ -976,9 +976,15 @@ public:
   }
 
   void
-  dump ()
+  emit ()
   {
     m_cg.dump (m_ofs);
+
+    unsigned flags = SECTION_NOTYPE | SECTION_DEBUG | SECTION_STRINGS | 1;
+    switch_to_section (get_section (".calgary.callgraph", flags, NULL_TREE));
+
+    std::string data = m_ofs.str ();
+    assemble_string (data.c_str (), data.length ());
   }
 };
 
@@ -1009,10 +1015,16 @@ namespace
   }
 
   void
+  ipa_passes_end (void *gcc_data, void *user_data)
+  {
+    auto cgr = static_cast <calgary *> (user_data);
+    cgr->emit ();
+  }
+
+  void
   finish (void *gcc_data, void *user_data)
   {
     auto cgr = static_cast <calgary *> (user_data);
-    cgr->dump ();
     delete cgr;
   }
 }
@@ -1038,71 +1050,12 @@ plugin_init (struct plugin_name_args *plugin_info,
   std::string ofn = "/dev/stdout";
   for (int i = 0; i < plugin_info->argc; ++i)
     {
-      const char *arg = plugin_info->argv[i].key;
-      if (arg == "o"s)
-        ofn = plugin_info->argv[i].value;
-      else if (arg == "opat"s)
-        {
-          // Substitution references like in make, e.g.: %.c:%.cg. Note we use a
-          // ":" to separate the pattern from the substitution, because gcc
-          // screws up passing arguments that contain a "=".
-          std::string val = plugin_info->argv[i].value;
-          std::string pat;
-          std::string subst;
-
-          {
-            auto pos = val.find (':');
-            if (pos == std::string::npos)
-              {
-                std::cerr << "Pattern '" << val << "' without substitution.\n"
-                          << "Example usage: -fplugin-arg-calgary-opat=%.c=%.cg\n";
-                return 1;
-              }
-            pat = val.substr (0, pos);
-            subst = val.substr (pos + 1);
-          }
-
-          if (pat.find ('%') == std::string::npos)
-            pat = "%"s + pat;
-          if (subst.find ('%') == std::string::npos)
-            subst = "%"s + subst;
-
-          std::string stem;
-          {
-            auto pos = pat.find ('%');
-            auto pfx = pat.substr (0, pos);
-            auto sfx = pat.substr (pos + 1);
-            std::string ifn = main_input_filename;
-            if (pfx.length () >= ifn.length ()
-                || sfx.length () >= ifn.length ()
-                || (pfx.length () + sfx.length ()) > ifn.length ()
-                || pfx != ifn.substr (0, pfx.length ())
-                || sfx != ifn.substr (ifn.length () - sfx.length ()))
-              {
-                std::cerr << "Pattern '" << pat
-                          << "' doesn't match the input file name '" << ifn
-                          << std::endl;
-                return 1;
-              }
-
-            size_t len = ifn.length () - pfx.length () - sfx.length ();
-            stem = ifn.substr (pfx.length (), len);
-          }
-
-          auto pos = subst.find ('%');
-          auto pfx = subst.substr (0, pos);
-          auto sfx = subst.substr (pos + 1);
-          ofn = pfx + stem + sfx;
-        }
-      else
-        {
-          std::cerr << "Unknown argument: " << plugin_info->argv[i].key
-                    << std::endl;
-          return 1;
-        }
+      std::cerr << "Unknown argument: " << plugin_info->argv[i].key
+                << std::endl;
+      return 1;
     }
 
-  calgary *cgr = new calgary (ofn);
+  calgary *cgr = new calgary ();
 
   register_callback (plugin_info->base_name, PLUGIN_FINISH_PARSE_FUNCTION,
                      finish_parse_function, cgr);
@@ -1110,6 +1063,8 @@ plugin_init (struct plugin_name_args *plugin_info,
                      finish_decl, cgr);
   register_callback (plugin_info->base_name, PLUGIN_FINISH_TYPE,
                      finish_type, cgr);
+  register_callback (plugin_info->base_name, PLUGIN_ALL_IPA_PASSES_END,
+                     ipa_passes_end, cgr);
   register_callback (plugin_info->base_name, PLUGIN_FINISH,
                      finish, cgr);
 

@@ -48,10 +48,11 @@ cgrtest-%: CGF = ./cases/$*.cg
 cgrtest-%:
 	@echo -n Test $*
 	@$(CC) -c $(CF) $(TEST_CFLAGS) \
-		-fplugin=$(shell pwd)/calgary.so -fplugin-arg-calgary-o=tmp
+		-fplugin=$(shell pwd)/calgary.so -o tmp
 	@if [ -f $(CGF) ]; then			\
 		echo -n " (diff)";		\
-		diff -u $(CGF) tmp || exit 1;	\
+		objcopy --dump-section=.calgary.callgraph=/dev/stdout tmp \
+			| diff -u $(CGF) /dev/stdin || exit 1;	\
 	fi
 	@echo
 	@rm tmp

@@ -5,3 +5,5 @@ struct ops {
 static struct ops main_ops = {
     .pf = 0,
 };
+
+void f(void) {}
