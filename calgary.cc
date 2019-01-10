@@ -789,6 +789,11 @@ namespace
         // One operand, an expression for a pointer.
         return walk_operand (src, t, 0, cg, level);
 
+      case MEM_REF:
+        // Operands are a pointer and a tree constant integer byte offset of the
+        // pointer type.
+        return walk_operand (src, t, 0, cg, level);
+
       case COMPONENT_REF: // Fall through.
       case BIT_FIELD_REF:
         // Operand 0 is the structure or union expression;
