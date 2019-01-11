@@ -608,6 +608,7 @@ namespace
 
     tree callee = get_callee (fn);
     assert (callee != NULL_TREE);
+    assert (DECL_P (callee));
 
     cg.add (TREE_CODE (callee) != PARM_DECL ? callee
             : translate_parm_decl (callee, cg));
@@ -619,20 +620,13 @@ namespace
 
     // Types of callee arguments.
     std::vector <tree> callee_arg_types;
-    if (TREE_CODE (callee) == FUNCTION_DECL)
-      for (tree a = DECL_ARGUMENTS (callee); a; a = TREE_CHAIN (a))
-        callee_arg_types.push_back (TREE_TYPE (a));
-    else
-      {
-        assert (DECL_P (callee));
-
-        tree type = TREE_TYPE (callee);
-        tree fn_type = get_function_type (type);
-        assert (fn_type != NULL_TREE);
-
-        for (tree a = TYPE_ARG_TYPES (fn_type); a != NULL_TREE; a = TREE_CHAIN (a))
-          callee_arg_types.push_back (TREE_VALUE (a));
-      }
+    {
+      tree type = TREE_TYPE (callee);
+      tree fn_type = get_function_type (type);
+      assert (fn_type != NULL_TREE);
+      for (tree a = TYPE_ARG_TYPES (fn_type); a != NULL_TREE; a = TREE_CHAIN (a))
+        callee_arg_types.push_back (TREE_VALUE (a));
+    }
 
     for (unsigned i = 0, nargs = call_expr_nargs (call_expr);
          i < nargs; ++i)

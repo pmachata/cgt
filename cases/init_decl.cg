@@ -1,0 +1,6 @@
+F ./cases/init_decl.c
+1793 (1) @decl bar
+1796 (2) @decl foo
+1800 (2) @decl foo()::(arg:0) 1793
+1798 (4) baz 1796
+---
