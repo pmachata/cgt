@@ -49,6 +49,21 @@ cgfile::include(char const* filename)
   delete rd;
 }
 
+namespace
+{
+  unsigned
+  get_callee_id(const char *strp, const char *curmodule,
+                ProgramSymbol *psym)
+  {
+    unsigned callee_id = std::strtoul(strp, NULL, 10);
+    if (unlikely (callee_id == 0))
+      std::cerr << "warning: " << curmodule
+                << ": symbol " << psym->get_name()
+                << " calls suspicious id " << strp << std::endl;
+    return callee_id;
+  }
+}
+
 size_t
 cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
                 size_t start)
@@ -270,13 +285,7 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
           if (strp[0] == '*' && strp[1] == 0)
             callee_id = psym_ptrcall()->get_id();
           else
-            {
-              callee_id = std::strtoul(strp, NULL, 10);
-              if (unlikely (callee_id == 0))
-                std::cerr << "warning: " << curmodule
-                          << ": symbol " << psym->get_name()
-                          << " calls suspicious id " << strp << std::endl;
-            }
+            callee_id = get_callee_id(strp, curmodule, psym);
 
           id_psym_map::const_iterator it;
           // If we have already seen the declaration, resolve
