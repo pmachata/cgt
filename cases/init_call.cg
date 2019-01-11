@@ -4,3 +4,4 @@ F ./cases/init_call.c
 1799 (8) getf
 1801 (13) foo 1799
 1793 (1) @decl fp 1800
+---

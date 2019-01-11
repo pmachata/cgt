@@ -4,3 +4,4 @@ F ./cases/init_cond_cb.c
 1804 (17) foo 1796
 1796 (4) @decl ebl::disasm
 1799 (9) @decl ctx::symcb
+---

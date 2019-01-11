@@ -15,3 +15,4 @@ F ./cases/y.c
 1867 (96) main 1825 1860
 1845 (56) @decl call_foo()::(arg:1) 1863
 1863 (83) @decl call_foo_main()::(arg:0) 1826
+---

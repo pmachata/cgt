@@ -4,3 +4,4 @@ F ./cases/init_cond.c
 1800 (11) @static null_elf_getsym
 1803 (16) foo 1795
 1798 (8) @decl ctx::symcb
+---

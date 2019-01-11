@@ -979,6 +979,7 @@ public:
   emit ()
   {
     m_cg.dump (m_ofs);
+    m_ofs << "---\n";
 
     unsigned flags = SECTION_NOTYPE | SECTION_DEBUG | SECTION_STRINGS | 1;
     switch_to_section (get_section (".calgary.callgraph", flags, NULL_TREE));

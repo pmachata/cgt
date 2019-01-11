@@ -3,3 +3,4 @@ F ./cases/array_ref_bare.c
 1796 (2) g
 1801 (6) foo
 1799 (4) @decl fps 1793 1796
+---

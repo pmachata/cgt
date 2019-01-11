@@ -1,3 +1,4 @@
 F ./cases/init_deep.c
 1797 (4) @decl bar::fp 1793
 1793 (1) f
+---

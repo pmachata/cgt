@@ -10,3 +10,4 @@ F ./cases/array_ref.c
 1820 (35) get_ops
 1824 (47) doit 1795
 1830 (53) main 1816 1820 1824
+---

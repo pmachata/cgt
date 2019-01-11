@@ -7,3 +7,4 @@ F ./cases/init_fp.c
 1805 (6) @decl getcb()::(ret)
 1813 (14) @decl foo::getcb::(ret)
 1809 (14) @decl foo::getcb
+---

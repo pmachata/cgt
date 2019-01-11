@@ -3,3 +3,4 @@ F ./cases/anon_struct_typedef.c
 1798 (8) cb
 1801 (13) foo
 1804 (18) bar 1794
+---
