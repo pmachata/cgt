@@ -58,7 +58,8 @@ cgrtest-%:
 	@rm tmp
 .PHONY: cgrtest-%
 
-test: $(CASES:%=cgrtest-%)
-	:
+check-cgr: $(CASES:%=cgrtest-%)
+
+check: check-cgr
 
 .PHONY: all clean dist
