@@ -105,7 +105,7 @@ tokenize_file(fd_reader *rd, tok_vect_vect &tokens)
 	continue;
 
       tokenize_line(line, curtoks);
-      assert (curtoks.size() > 1);
+      assert (curtoks.size() >= 1);
     }
 }
 

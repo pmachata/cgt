@@ -49,8 +49,9 @@ cgfile::include(char const* filename)
   delete rd;
 }
 
-void
-cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule)
+size_t
+cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
+                size_t start)
 {
   clean();
   m_id_assignments[psym_ptrcall()->get_id()] = psym_ptrcall();
@@ -68,7 +69,8 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule)
     curpath = "./";
 
   size_t num_lines = file_tokens.size();
-  for (size_t line_i = 0; line_i < num_lines; ++line_i)
+  size_t line_i = start;
+  for (; line_i < num_lines; ++line_i)
     {
       tok_vect const& tokens = file_tokens[line_i];
       tok_vect::size_type tokens_size = tokens.size();
@@ -84,6 +86,9 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule)
 	    std::cerr << "Invalid command `" << strp << "'" << std::endl;
 	  continue;
 	}
+      else if (strp[0] == '-' && strp[1] == '-'
+               && strp[2] == '-' && strp[3] == 0)
+        break;
 
       // line structure: <id> (<linedef>) (@decl|@var|@static)* <name> (<callee id>)*
 
@@ -355,6 +360,19 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule)
     }
 
   clean();
+  return line_i;
+}
+
+void
+cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule)
+{
+  for (size_t start = 0;;)
+    {
+      size_t new_start = include(file_tokens, curmodule, start);
+      if (new_start <= start)
+        return;
+      start = new_start + 1;
+    }
 }
 
 namespace {

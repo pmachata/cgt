@@ -22,6 +22,8 @@ public:
   cgfile();
   ~cgfile();
 
+  size_t include(tok_vect_vect const& file_tokens, char const* curmodule,
+                 size_t start);
   void include(tok_vect_vect const& file_tokens, char const* curmodule);
   void include(char const* filename);
   void sort_psyms_by_file();
