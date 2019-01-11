@@ -262,36 +262,35 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
       m_id_assignments[id] = psym;
       m_name_assignments[name] = psym;
 
-      // This is a function with body.  Look through the call list.
-      if (!is_decl && !is_var)
-	while (i < tokens_size)
-	  {
-	    strp = tokens[i++];
-	    unsigned callee_id;
-	    if (strp[0] == '*' && strp[1] == 0)
-	      callee_id = psym_ptrcall()->get_id();
-	    else
-	      {
-		callee_id = std::strtoul(strp, NULL, 10);
-		if (unlikely (callee_id == 0))
-		  std::cerr << "warning: " << curmodule
-			    << ": symbol " << psym->get_name()
-			    << " calls suspicious id " << strp << std::endl;
-	      }
+      // Process the callee list.
+      while (i < tokens_size)
+        {
+          strp = tokens[i++];
+          unsigned callee_id;
+          if (strp[0] == '*' && strp[1] == 0)
+            callee_id = psym_ptrcall()->get_id();
+          else
+            {
+              callee_id = std::strtoul(strp, NULL, 10);
+              if (unlikely (callee_id == 0))
+                std::cerr << "warning: " << curmodule
+                          << ": symbol " << psym->get_name()
+                          << " calls suspicious id " << strp << std::endl;
+            }
 
-	    id_psym_map::const_iterator it;
-	    // If we have already seen the declaration, resolve
-	    // the callee right away.  Otherwise add it among
-	    // pending callees.
-	    if ((it = m_id_assignments.find(callee_id))
-		!= m_id_assignments.end())
-	      {
-		ProgramSymbol *callee = it->second;
-		psym->add_callee(callee);
-	      }
-	    else
-	      m_pending_callees.push_back(std::make_pair(callee_id, psym));
-	  }
+          id_psym_map::const_iterator it;
+          // If we have already seen the declaration, resolve
+          // the callee right away.  Otherwise add it among
+          // pending callees.
+          if ((it = m_id_assignments.find(callee_id))
+              != m_id_assignments.end())
+            {
+              ProgramSymbol *callee = it->second;
+              psym->add_callee(callee);
+            }
+          else
+            m_pending_callees.push_back(std::make_pair(callee_id, psym));
+        }
 
       if (maybe_enlist && !is_static)
 	m_global_symbols[name] = psym;
