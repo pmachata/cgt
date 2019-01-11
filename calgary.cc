@@ -319,6 +319,14 @@ namespace
     }
 
     void
+    dump_context_ref (std::ostream &os, tree src)
+    {
+      if (TREE_CODE (src) == PARM_DECL
+          || TREE_CODE (src) == RESULT_DECL)
+        os << " ^" << DECL_UID (DECL_CONTEXT (src));
+    }
+
+    void
     dump (std::ostream &os)
     {
       struct node_less
@@ -346,6 +354,7 @@ namespace
         {
           tree src = c.first;
           dump_one (os, src);
+          dump_context_ref (os, src);
           seen.insert (src);
           unseen.erase (src);
 
@@ -361,6 +370,7 @@ namespace
       for (auto src: unseen)
         {
           dump_one (os, src);
+          dump_context_ref (os, src);
           os << std::endl;
         }
     }

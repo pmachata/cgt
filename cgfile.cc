@@ -284,6 +284,11 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
           unsigned callee_id;
           if (strp[0] == '*' && strp[1] == 0)
             callee_id = psym_ptrcall()->get_id();
+          else if (strp[0] == '^')
+            {
+              callee_id = get_callee_id(strp + 1, curmodule, psym);
+              continue;
+            }
           else
             callee_id = get_callee_id(strp, curmodule, psym);
 

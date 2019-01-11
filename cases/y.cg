@@ -1,10 +1,10 @@
 F ./cases/y.c
-1826 (32) @decl get_get_arg()::(ret) 1833 1810
+1826 (32) @decl get_get_arg()::(ret) ^1825 1833 1810
 1802 (10) @decl ops::pf 798 1797
 798 (1) @decl printf
 1797 (4) printf2 798
 1795 (2) @decl atoi
-1833 (32) @decl get_get_arg()::(arg:1) 1816
+1833 (32) @decl get_get_arg()::(arg:1) ^1825 1816
 1805 (14) foo 1802
 1810 (21) last_arg
 1816 (27) first_arg
@@ -13,6 +13,6 @@ F ./cases/y.c
 1852 (74) get_twain_ops
 1860 (83) call_foo_main 1841 1852
 1867 (96) main 1825 1860
-1845 (56) @decl call_foo()::(arg:1) 1863
-1863 (83) @decl call_foo_main()::(arg:0) 1826
+1845 (56) @decl call_foo()::(arg:1) ^1841 1863
+1863 (83) @decl call_foo_main()::(arg:0) ^1860 1826
 ---

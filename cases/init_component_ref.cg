@@ -1,6 +1,6 @@
 F ./cases/init_component_ref.c
-1799 (9) @decl dwarf_new_oom_handler()::(ret) 1795
+1799 (9) @decl dwarf_new_oom_handler()::(ret) ^1798 1795
 1795 (5) @decl Dwarf::oom_handler 1802
 1798 (9) dwarf_new_oom_handler
-1802 (9) @decl dwarf_new_oom_handler()::(arg:1)
+1802 (9) @decl dwarf_new_oom_handler()::(arg:1) ^1798
 ---

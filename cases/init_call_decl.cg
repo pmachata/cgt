@@ -2,5 +2,5 @@ F ./cases/init_call_decl.c
 1796 (2) @decl getf
 1797 (4) foo 1796
 1793 (1) @decl fp 1799
-1799 (2) @decl getf()::(ret)
+1799 (2) @decl getf()::(ret) ^1796
 ---
