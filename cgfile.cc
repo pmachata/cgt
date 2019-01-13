@@ -12,13 +12,6 @@ cgfile::cgfile()
   , global_symbols(m_global_symbols)
 {}
 
-cgfile::~cgfile()
-{
-  for (name_fsym_map::iterator it = m_file_symbols.begin();
-       it != m_file_symbols.end(); ++it)
-    delete it->second;
-}
-
 void
 cgfile::clean()
 {
@@ -139,15 +132,17 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
 
       if (fsym == NULL || fsym->get_qname() != filename)
 	{
-	  name_fsym_map::iterator it = m_file_symbols.find(filename);
-	  if (it != m_file_symbols.end())
-	    fsym = it->second;
+	  if (auto it = m_file_symbols.find(filename);
+	      it != m_file_symbols.end())
+	    fsym = it->second.get();
 	  else
 	    {
 	      if (filename == NULL)
 		filename = q::intern("");
-	      fsym = new FileSymbol(filename);
-	      m_file_symbols[filename] = fsym;
+	      fsym = m_file_symbols.emplace
+			(std::make_pair(filename,
+					std::make_unique<FileSymbol>(filename)))
+		.first->second.get();
 	    }
 	}
 

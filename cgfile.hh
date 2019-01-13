@@ -11,7 +11,7 @@
 class cgfile {
   typedef std::MAP<unsigned, ProgramSymbol*> id_psym_map;
   typedef std::MAP<q::Quark, ProgramSymbol*> name_psym_map;
-  typedef std::MAP<q::Quark, FileSymbol*> name_fsym_map;
+  typedef std::MAP<q::Quark, std::unique_ptr<FileSymbol>> name_fsym_map;
 
 public:
   // Public read-only view of internal data...
@@ -20,7 +20,6 @@ public:
   name_psym_map const& global_symbols;
 
   cgfile();
-  ~cgfile();
 
   size_t include(tok_vect_vect const& file_tokens, char const* curmodule,
                  size_t start);
