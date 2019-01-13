@@ -64,6 +64,10 @@ private:
   id_psym_map m_id_assignments;
   name_psym_map m_name_assignments;
 
+  // Assignments [symbol -> parent ID]
+  typedef std::MAP<ProgramSymbol*, unsigned> psym_id_map;
+  psym_id_map m_parent_assignments;
+
   // Map of alias symbols waiting for canonical symbol to show up.
   typedef std::vector<std::pair<q::Quark, ProgramSymbol*> > pending_aliases_map;
   pending_aliases_map m_pending_aliases;

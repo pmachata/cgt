@@ -32,6 +32,7 @@ cgfile::clean()
 {
   m_id_assignments.clear();
   m_name_assignments.clear();
+  m_parent_assignments.clear();
 
   // Don't call `clear' here, STL implementation is allowed to release
   // the memory.  We don't want that, it decreases the performance.
@@ -287,15 +288,23 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
           else if (strp[0] == '^')
             {
               callee_id = get_callee_id(strp + 1, curmodule, psym);
+              if (auto it = m_parent_assignments.find(psym);
+                  it != m_parent_assignments.end()
+                  && it->second != callee_id)
+                std::cerr << "warning: " << curmodule
+                          << ": the parent of symbol " << psym->get_name()
+                          << " declared as both " << callee_id
+                          << " and " << it->second << std::endl;
+              else
+                m_parent_assignments.insert(std::make_pair(psym, callee_id));
               continue;
             }
           else
             callee_id = get_callee_id(strp, curmodule, psym);
 
           id_psym_map::const_iterator it;
-          // If we have already seen the declaration, resolve
-          // the callee right away.  Otherwise add it among
-          // pending callees.
+          // If we have already seen the declaration, resolve the callee
+          // right away. Otherwise add it to pending callees.
           if ((it = m_id_assignments.find(callee_id))
               != m_id_assignments.end())
             {
