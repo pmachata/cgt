@@ -103,13 +103,6 @@ ProgramSymbol::dump(std::ostream & o) const
   o << std::endl;
 }
 
-ProgramSymbol*
-psym_ptrcall()
-{
-  static ProgramSymbol *const psym = new ProgramSymbol(q::intern("*"), NULL, 0);
-  return psym;
-}
-
 void
 update_path(ProgramSymbol *psym, std::string const& curpath)
 {

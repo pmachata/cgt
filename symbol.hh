@@ -91,9 +91,6 @@ private:
   friend class ProgramSymbol_binder;
 };
 
-// Pseudo-symbol used as calee in "call through pointer" cases.
-ProgramSymbol* psym_ptrcall();
-
 void update_path(ProgramSymbol *psym, std::string const& curpath);
 
 #endif//cgt_symbol_hh_guard

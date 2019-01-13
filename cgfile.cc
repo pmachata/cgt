@@ -12,9 +12,7 @@ cgfile::cgfile()
   : all_program_symbols(m_all_program_symbols)
   , file_symbols(m_file_symbols)
   , global_symbols(m_global_symbols)
-{
-  m_all_program_symbols.push_back(psym_ptrcall());
-}
+{}
 
 cgfile::~cgfile()
 {
@@ -70,7 +68,6 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
                 size_t start)
 {
   clean();
-  m_id_assignments[psym_ptrcall()->get_id()] = psym_ptrcall();
   std::vector<char const*> to_be_included;
 
   FileSymbol *fsym = NULL;
@@ -284,7 +281,14 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
           strp = tokens[i++];
           unsigned callee_id;
           if (strp[0] == '*' && strp[1] == 0)
-            callee_id = psym_ptrcall()->get_id();
+            {
+              // We have the more accurate callee tracking now, so ignore
+              // the old '*' pseudo-calle.
+              std::cerr << "warning: " << curmodule
+                        << ": symbol " << psym->get_name()
+                        << " calls unsupported callee '*'\n";
+              continue;
+            }
           else if (strp[0] == '^')
             {
               callee_id = get_callee_id(strp + 1, curmodule, psym);
