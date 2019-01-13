@@ -1,7 +1,7 @@
 OPENMP = #-fopenmp
-TARGETS = linker cgt.so randcg link cgq
+TARGETS = linker cgt.so randcg link cgq calgary.so
 CXXPPFLAGS = -DUSE_EXPECT $(CXXINCLUDES)
-CXXFLAGS = -Wall $(OPENMP) -g -O2 $(CXXPPFLAGS) -fPIC
+CXXFLAGS = -Wall $(OPENMP) -g -O2 $(CXXPPFLAGS) -fPIC -std=c++17
 LDFLAGS = $(OPENMP)
 
 DIRS = . qlib
@@ -10,8 +10,6 @@ CCSOURCES = $(filter %.cc,$(ALLSOURCES))
 DEPFILES = $(patsubst %.cc,%.cc-dep,$(CCSOURCES))
 CASES = $(patsubst cases/%.c,%,$(wildcard cases/*.c))
 TESTS = $(patsubst cases/%.sh,%,$(wildcard cases/test-*.sh))
-
-LDFLAGS += -lboost_regex -lreadline
 
 all: $(TARGETS)
 
@@ -24,6 +22,11 @@ cgt.so: LDFLAGS += -lboost_python -lpython2.5 -shared
 cgt.so: qlib/cgt-binding.o qlib/Cgt.o qlib/Color.o -liberty
 link: qlib/link.o qlib/Cgt.o qlib/Color.o -liberty
 cgq: qlib/cgq.o qlib/Cgt.o qlib/Color.o -liberty
+
+calgary.o: CXXPPFLAGS += -I$(shell $(CXX) -print-file-name=plugin/include) \
+			  -fpic -fno-rtti
+calgary.so: LDFLAGS += -shared -fpic -fno-rtti
+calgary.so: calgary.o
 
 -include $(DEPFILES)
 
@@ -38,10 +41,6 @@ test-%: %.o %.cc test.o
 
 clean:
 	rm -f *.o qlib/*.o qlib/*.*-dep *.*-dep $(TARGETS)
-
-calgary.so: CXXFLAGS += -std=c++17
-calgary.so: calgary.cc
-	$(CXX) -I$(shell $(CXX) -print-file-name=plugin/include) $(CXXFLAGS) -shared -fpic -fno-rtti $^ -o $@
 
 cgrtest-%: TEST_CFLAGS = $(shell grep ^//: ./cases/$*.c | cut -d' ' -f 2-)
 cgrtest-%: CF = ./cases/$*.c
@@ -58,7 +57,6 @@ cgrtest-%:
 	@echo
 	@rm tmp
 .PHONY: cgrtest-%
-
 
 test-%:
 	@echo Test sh $*
