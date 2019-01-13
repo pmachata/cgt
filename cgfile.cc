@@ -6,8 +6,6 @@
 #include <cstring>
 #include <iostream>
 
-#include <boost/lambda/lambda.hpp>
-
 cgfile::cgfile()
   : all_program_symbols(m_all_program_symbols)
   , file_symbols(m_file_symbols)
@@ -448,9 +446,8 @@ cgfile::dump(std::ostream & outs) const
 void
 cgfile::compute_callers()
 {
-  std::for_each(m_all_program_symbols.begin(),
-		m_all_program_symbols.end(),
-		boost::lambda::_1 ->* &ProgramSymbol::clear_callers);
+  for (auto const &psym: m_all_program_symbols)
+    psym->clear_callers();
 
   for (psym_vect::iterator it = m_all_program_symbols.begin();
        it != m_all_program_symbols.end(); ++it)
