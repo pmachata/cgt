@@ -14,13 +14,6 @@ class cgfile {
   typedef std::MAP<q::Quark, std::unique_ptr<FileSymbol>> name_fsym_map;
 
 public:
-  // Public read-only view of internal data...
-  psym_vect const& all_program_symbols;
-  name_fsym_map const& file_symbols;
-  name_psym_map const& global_symbols;
-
-  cgfile();
-
   size_t include(tok_vect_vect const& file_tokens, char const* curmodule,
                  size_t start);
   void include(tok_vect_vect const& file_tokens, char const* curmodule);

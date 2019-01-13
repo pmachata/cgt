@@ -6,12 +6,6 @@
 #include <cstring>
 #include <iostream>
 
-cgfile::cgfile()
-  : all_program_symbols(m_all_program_symbols)
-  , file_symbols(m_file_symbols)
-  , global_symbols(m_global_symbols)
-{}
-
 void
 cgfile::clean()
 {
@@ -412,7 +406,7 @@ void
 cgfile::dump(std::ostream & outs) const
 {
   q::Quark path = NULL;
-  for (auto const &psym: all_program_symbols)
+  for (auto const &psym: m_all_program_symbols)
     {
 //       if (psym->is_forwarder() || !psym->is_used())
 // 	continue;
