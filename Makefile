@@ -9,6 +9,7 @@ ALLSOURCES = $(foreach dir,$(DIRS),$(wildcard $(dir)/*.cc $(dir)/*.hh $(dir)/*.i
 CCSOURCES = $(filter %.cc,$(ALLSOURCES))
 DEPFILES = $(patsubst %.cc,%.cc-dep,$(CCSOURCES))
 CASES = $(patsubst cases/%.c,%,$(wildcard cases/*.c))
+TESTS = $(patsubst cases/%.sh,%,$(wildcard cases/test-*.sh))
 
 LDFLAGS += -lboost_regex -lreadline
 
@@ -46,7 +47,7 @@ cgrtest-%: TEST_CFLAGS = $(shell grep ^//: ./cases/$*.c | cut -d' ' -f 2-)
 cgrtest-%: CF = ./cases/$*.c
 cgrtest-%: CGF = ./cases/$*.cg
 cgrtest-%:
-	@echo -n Test $*
+	@echo -n Test cgr $*
 	@$(CC) -c $(CF) $(TEST_CFLAGS) \
 		-fplugin=$(shell pwd)/calgary.so -o tmp
 	@if [ -f $(CGF) ]; then			\
@@ -58,8 +59,14 @@ cgrtest-%:
 	@rm tmp
 .PHONY: cgrtest-%
 
-check-cgr: $(CASES:%=cgrtest-%)
 
-check: check-cgr
+test-%:
+	@echo Test sh $*
+	@(cd cases; ./$*.sh)
+
+check-cgr: $(CASES:%=cgrtest-%)
+check-tests: $(TESTS:%=test-%)
+
+check: check-cgr check-tests
 
 .PHONY: all clean dist
