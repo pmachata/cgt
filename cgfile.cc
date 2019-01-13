@@ -14,10 +14,6 @@ cgfile::cgfile()
 
 cgfile::~cgfile()
 {
-  for (psym_vect::iterator it = m_all_program_symbols.begin();
-       it != m_all_program_symbols.end(); ++it)
-    delete *it;
-
   for (name_fsym_map::iterator it = m_file_symbols.begin();
        it != m_file_symbols.end(); ++it)
     delete it->second;
@@ -246,8 +242,9 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
       // Create a new symbol.
       if (psym == NULL)
 	{
-	  psym = new ProgramSymbol(name, fsym, line_number);
-	  m_all_program_symbols.push_back(psym);
+          psym = m_all_program_symbols.emplace_back
+                    (std::make_unique<ProgramSymbol>(name, fsym,
+                                                     line_number)).get();
 	  psym->set_decl(is_decl);
 	  psym->set_static(is_static);
 	  psym->set_var(is_var);
@@ -401,7 +398,8 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule)
 
 namespace {
   struct compare_psyms_file {
-    bool operator()(ProgramSymbol *ps1, ProgramSymbol *ps2) {
+    bool operator()(std::unique_ptr<ProgramSymbol> const &ps1,
+                    std::unique_ptr<ProgramSymbol> const &ps2) {
       return ps1->get_file() < ps2->get_file();
     }
   };
@@ -419,10 +417,8 @@ void
 cgfile::dump(std::ostream & outs) const
 {
   q::Quark path = NULL;
-  for (psym_vect::const_iterator it = all_program_symbols.begin();
-       it != all_program_symbols.end(); ++it)
+  for (auto const &psym: all_program_symbols)
     {
-      ProgramSymbol * psym = *it;
 //       if (psym->is_forwarder() || !psym->is_used())
 // 	continue;
 
@@ -449,29 +445,20 @@ cgfile::compute_callers()
   for (auto const &psym: m_all_program_symbols)
     psym->clear_callers();
 
-  for (psym_vect::iterator it = m_all_program_symbols.begin();
-       it != m_all_program_symbols.end(); ++it)
-    {
-      psym_set const& callees = (*it)->get_callees();
-      for (psym_set::iterator jt = callees.begin();
-	   jt != callees.end(); ++jt)
-	(*jt)->add_caller(*it);
-    }
+  for (auto const &psym: m_all_program_symbols)
+    for (auto const &callee: psym->get_callees())
+      callee->add_caller(psym.get());
 }
 
 void
 cgfile::compute_used()
 {
-  for (psym_vect::iterator it = m_all_program_symbols.begin();
-       it != m_all_program_symbols.end(); ++it)
+  for (auto const &psym: m_all_program_symbols)
     {
-      ProgramSymbol *psym = *it;
       if (!psym->is_decl())
 	psym->set_used();
 
-      psym_set const& callees = (*it)->get_callees();
-      for (psym_set::iterator jt = callees.begin();
-	   jt != callees.end(); ++jt)
-	(*jt)->set_used();
+      for (auto const &callee: psym->get_callees())
+	callee->set_used();
     }
 }

@@ -95,11 +95,10 @@ ProgramSymbol::dump(std::ostream & o) const
     << (m_is_var ? " @var" : "")
     << ' ' << get_name();
 
-  psym_vect v(m_callees.begin(), m_callees.end());
+  std::vector<ProgramSymbol *> v(m_callees.begin(), m_callees.end());
   std::sort(v.begin(), v.end(), cmp_id());
-  for (psym_vect::const_iterator it = v.begin();
-       it != v.end(); ++it)
-    o << ' ' << (*it)->get_id();
+  for (auto const &psym: v)
+    o << ' ' << psym->get_id();
   o << std::endl;
 }
 

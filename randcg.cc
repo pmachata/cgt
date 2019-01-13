@@ -87,12 +87,13 @@ main(int argc, char **argv)
       line += static_cast<unsigned long>(cg::rand() * 50);
       unsigned long w = static_cast<unsigned long>(cg::rand() * words.size());
       std::string word = words[w] + '.' + to_string(i);
-      ProgramSymbol *psym = new ProgramSymbol(q::intern(word), fsym, line);
+      auto psym = all_symbols.emplace_back
+                    (std::make_unique<ProgramSymbol>(q::intern(word),
+                                                     fsym, line)).get();
       psym->set_static(cg::rand() > 0.5);
       psym->set_decl(cg::rand() > 0.5);
       psym->set_var(cg::rand() > 0.5);
       psym->set_path(fsym->get_qname());
-      all_symbols.push_back(psym);
     }
 
   for (int i = 0; i < atoi(edges); ++i)
@@ -101,17 +102,15 @@ main(int argc, char **argv)
       do {
 	unsigned long a = static_cast<unsigned long>(cg::rand() * all_symbols.size());
 	unsigned long b = static_cast<unsigned long>(cg::rand() * all_symbols.size());
-	psym1 = all_symbols[a];
-	psym2 = all_symbols[b];
+	psym1 = all_symbols[a].get();
+	psym2 = all_symbols[b].get();
       } while (psym1->get_callees().find(psym2) != psym1->get_callees().end());
       psym1->add_callee(psym2);
     }
 
   q::Quark path = NULL;
-  for (psym_vect::const_iterator it = all_symbols.begin();
-       it != all_symbols.end(); ++it)
+  for (auto const &psym: all_symbols)
     {
-      ProgramSymbol *psym = *it;
       q::Quark psym_path = psym->get_qpath();
       if (psym_path != path)
 	{

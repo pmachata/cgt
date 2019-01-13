@@ -5,12 +5,13 @@
 #include "types.hh"
 #include <set>
 #include <vector>
+#include <memory>
 
 struct FileSymbol;
 struct ProgramSymbol;
 
 typedef std::set<ProgramSymbol *> psym_set;
 typedef std::SET<ProgramSymbol *> psym_SET;
-typedef std::vector<ProgramSymbol *> psym_vect;
+typedef std::vector<std::unique_ptr<ProgramSymbol>> psym_vect;
 
 #endif//cgt_symbol_ii_guard
