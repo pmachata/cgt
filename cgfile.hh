@@ -2,16 +2,17 @@
 #define cgt_cgfile_hh_guard
 
 #include "symbol.ii"
-#include "types.hh"
 #include "reader.hh"
 #include "quark.hh"
 
+#include <unordered_map>
 #include <iosfwd>
 
 class cgfile {
-  typedef std::MAP<unsigned, ProgramSymbol*> id_psym_map;
-  typedef std::MAP<q::Quark, ProgramSymbol*> name_psym_map;
-  typedef std::MAP<q::Quark, std::unique_ptr<FileSymbol>> name_fsym_map;
+  typedef std::unordered_map<unsigned, ProgramSymbol*> id_psym_map;
+  typedef std::unordered_map<q::Quark, ProgramSymbol*> name_psym_map;
+  typedef std::unordered_map<q::Quark,
+                             std::unique_ptr<FileSymbol>> name_fsym_map;
 
 public:
   size_t include(tok_vect_vect const& file_tokens, char const* curmodule,
@@ -57,7 +58,7 @@ private:
   name_psym_map m_name_assignments;
 
   // Assignments [symbol -> parent ID]
-  typedef std::MAP<ProgramSymbol*, unsigned> psym_id_map;
+  typedef std::unordered_map<ProgramSymbol*, unsigned> psym_id_map;
   psym_id_map m_parent_assignments;
 
   // Map of alias symbols waiting for canonical symbol to show up.

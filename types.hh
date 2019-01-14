@@ -1,15 +1,3 @@
-#if defined __GXX_EXPERIMENTAL_CXX0X__ || defined USE_CPP0X
-# include <unordered_map>
-# include <unordered_set>
-# define MAP unordered_map
-# define SET unordered_set
-#else
-# include <map>
-# include <set>
-# define MAP map
-# define SET set
-#endif
-
 #if defined likely && !defined USE_EXPECT
 # undef likely
 # undef unlikely

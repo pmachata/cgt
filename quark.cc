@@ -1,11 +1,11 @@
 #include "quark.hh"
-#include "types.hh"
 
 #include <cassert>
 #include <cstdlib>
+#include <unordered_set>
 
 namespace {
-  typedef std::SET<std::string> interned_t;
+  typedef std::unordered_set<std::string> interned_t;
   interned_t interned;
 }
 
