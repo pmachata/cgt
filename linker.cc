@@ -1,5 +1,4 @@
 #include "cgfile.hh"
-#include "quark.hh"
 #include "reader.hh"
 #include "symbol.hh"
 

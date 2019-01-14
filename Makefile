@@ -15,8 +15,8 @@ all: $(TARGETS)
 
 cgtmodule.% qlib/cgt-binding.%: CXXINCLUDES += -I/usr/include/python2.5/
 
-linker: linker.o canon.o quark.o id.o symbol.o reader.o cgfile.o
-randcg: randcg.o symbol.o quark.o id.o rand.o reader.o canon.o
+linker: linker.o canon.o id.o symbol.o reader.o cgfile.o
+randcg: randcg.o symbol.o id.o rand.o reader.o canon.o
 
 cgt.so: LDFLAGS += -lboost_python -lpython2.5 -shared
 cgt.so: qlib/cgt-binding.o qlib/Cgt.o qlib/Color.o -liberty

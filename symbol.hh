@@ -2,7 +2,6 @@
 #define cgt_symbol_hh_guard
 
 #include "id.hh"
-#include "quark.hh"
 #include "symbol.ii"
 
 #include <cassert>
@@ -10,26 +9,22 @@
 #include <string>
 
 struct Symbol {
-  Symbol(q::Quark name)
+  Symbol(std::string name)
     : m_name(name)
   {}
 
   std::string const& get_name() const {
-    return *q::to_string(m_name);
-  }
-
-  q::Quark get_qname() const {
     return m_name;
   }
 
 private:
-  q::Quark const m_name;
+  std::string const m_name;
 };
 
 struct FileSymbol
   : public Symbol
 {
-  FileSymbol(q::Quark name) : Symbol(name) { }
+  FileSymbol(std::string name) : Symbol(name) { }
 };
 
 class ProgramSymbol
@@ -38,7 +33,7 @@ class ProgramSymbol
   void check_have_callers() const;
 
 public:
-  ProgramSymbol(q::Quark name, FileSymbol *file, unsigned line);
+  ProgramSymbol(std::string name, FileSymbol *file, unsigned line);
   ~ProgramSymbol();
 
   unsigned get_id() const { return m_id; }
@@ -71,16 +66,15 @@ public:
   void set_file(FileSymbol *file) { m_file = file; }
   FileSymbol *get_file() const { return m_file; }
 
-  void set_path(q::Quark path) { m_path = path; }
-  std::string const& get_path() const { return *q::to_string(m_path); }
-  q::Quark get_qpath() const { return m_path; }
+  void set_path(std::string path) { m_path = path; }
+  std::string const& get_path() const { return m_path; }
 
   void dump(std::ostream & o) const;
 
 private:
   unsigned const m_id;
   FileSymbol *m_file;
-  q::Quark m_path;
+  std::string m_path;
   unsigned m_line_number;
   bool m_is_static, m_is_decl, m_is_var;
   bool m_used; // whether anyone calls it

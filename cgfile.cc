@@ -53,8 +53,8 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
   std::vector<char const*> to_be_included;
 
   FileSymbol *fsym = NULL;
-  q::Quark filename = NULL;
   unsigned line_number = 0;
+  std::string filename;
 
   std::string curpath(curmodule);
   size_t idx = curpath.find_last_of('/');
@@ -74,7 +74,7 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
       if (!isdigit(strp[0]) && strp[1] == 0)
 	{
 	  if (strp[0] == 'F')
-	    filename = q::intern(tokens[1]);
+	    filename = tokens[1];
 	  else if (strp[0] == 'I')
 	    to_be_included.push_back(tokens[1]);
 	  else
@@ -96,13 +96,13 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
       bool is_var = false;
       bool is_static = false;
       size_t i = 2;
-      q::Quark name = NULL;
+      std::string name;
       while (true)
 	{
 	  strp = tokens[i++];
 	  if (strp[0] != '@')
 	    {
-	      name = q::intern(strp);
+	      name = strp;
 	      break;
 	    }
 
@@ -125,27 +125,23 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
 	  }
 	}
 
-      if (fsym == NULL || fsym->get_qname() != filename)
+      if (fsym == NULL || fsym->get_name() != filename)
 	{
 	  if (auto it = m_file_symbols.find(filename);
 	      it != m_file_symbols.end())
 	    fsym = it->second.get();
 	  else
-	    {
-	      if (filename == NULL)
-		filename = q::intern("");
-	      fsym = m_file_symbols.emplace
-			(std::make_pair(filename,
-					std::make_unique<FileSymbol>(filename)))
-		.first->second.get();
-	    }
+            fsym = m_file_symbols.emplace
+              (std::make_pair(filename,
+                              std::make_unique<FileSymbol>(filename)))
+              .first->second.get();
 	}
 
       id_psym_map::const_iterator lsit;
       name_psym_map::const_iterator gsit;
       bool maybe_enlist = false;
       ProgramSymbol *psym = NULL;
-      q::Quark canon = NULL;
+      std::string canon;
 
       // This is an alias.  It's like any other symbol decl, except it
       // aliases other symbol.
@@ -153,7 +149,7 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
 	  && ((strp = tokens[i])[0] == '-'
 	      && strp[1] == '>' && strp[2] == 0))
 	{
-	  canon = q::intern(tokens[i+1]);
+	  canon = tokens[i+1];
 	  i += 2; // skip arrow and canon name
 	}
 
@@ -173,12 +169,11 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
       else if ((lsit = m_id_assignments.find(id)) != m_id_assignments.end())
 	{
 	  psym = lsit->second;
-	  std::string const& nn = *q::to_string(name);
-	  if (nn != psym->get_name())
+	  if (name != psym->get_name())
 	    std::cerr << "warning: " << curmodule
 		      << ": symbol #" << id
 		      << " renamed from `" << psym->get_name()
-		      << "' to `" << nn << '\'' << std::endl;
+		      << "' to `" << name << '\'' << std::endl;
 	}
 
       // Above, we have bound a symbol.  Check the sanity of
@@ -246,10 +241,9 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
       // the new symbol alias the other one.  Otherwise make it
       // pending alias.  Only look up local symbols, because
       // aliases have to be resolved locally.
-      if (canon != NULL)
+      if (canon != "")
 	{
-	  name_psym_map::const_iterator it
-	    = m_name_assignments.find(canon);
+	  name_psym_map::const_iterator it = m_name_assignments.find(canon);
 
 	  if (it != m_name_assignments.end())
 	    psym->set_forward_to(it->second);
@@ -319,7 +313,7 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
 	std::cerr << "warning: " << curmodule
 		  << ": a symbol " << it->second->get_name()
 		  << " aliases unknown symbol named "
-		  << *q::to_string(it->first) << std::endl;
+		  << it->first << std::endl;
     }
 
   // Resolve pending callees.
@@ -406,23 +400,20 @@ cgfile::sort_psyms_by_file()
 void
 cgfile::dump(std::ostream & outs) const
 {
-  q::Quark path = NULL;
+  std::string path = "";
   for (auto const &psym: m_all_program_symbols)
     {
-//       if (psym->is_forwarder() || !psym->is_used())
-// 	continue;
-
-      q::Quark psym_path = psym->get_qpath();
-      if (psym_path != path)
-	{
+      if (auto psym_path = psym->get_path();
+          psym_path != path)
+        {
 	  path = psym_path;
-	  if (path == NULL)
+	  if (path == "")
 	    {
 	      std::cerr << "warning unset path for symbol " << std::flush;
 	      std::cerr << psym->get_name() << ": " << std::flush;
 	      std::cerr << psym->get_file()->get_name() << "." << std::endl;
 	    }
-	  outs << "F " << psym->get_path() << std::endl;
+	  outs << "F " << psym_path << std::endl;
 	}
 
       psym->dump(outs);

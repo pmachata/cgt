@@ -11,11 +11,10 @@ struct cmp_id {
   }
 };
 
-ProgramSymbol::ProgramSymbol(q::Quark name, FileSymbol *file, unsigned line)
+ProgramSymbol::ProgramSymbol(std::string name, FileSymbol *file, unsigned line)
   : Symbol(name)
   , m_id(gen_id())
   , m_file(file)
-  , m_path(NULL)
   , m_line_number(line)
   , m_is_static(false)
   , m_is_decl(false)
@@ -107,35 +106,27 @@ update_path(ProgramSymbol *psym, std::string const& curpath)
 {
   static std::string HOME = std::getenv("HOME") ?: "";
 
-  FileSymbol *fsym = psym->get_file();
-  if (fsym == NULL || fsym->get_qname() == NULL)
-    {
-    empty:
-      psym->set_path(q::intern(""));
-    }
-  else
-    {
-      std::string const& fn = fsym->get_name();
-      if (fn.length() == 0)
-	goto empty;
-
-      if (fn[0] == '/' || fn[0] == '<')
-	// system headers and built-ins
-	psym->set_path(fsym->get_qname());
-      else
-	{
-	  char pathstor[curpath.length() + fn.length() + 1];
-	  size_t pathlen = sizeof(pathstor);
-	  char *path = pathstor;
-	  stpcpy(stpcpy(path, curpath.c_str()), fn.c_str());
-	  if (!HOME.empty() && pathlen > HOME.length()
-	      && std::strncmp(path, HOME.c_str(), HOME.length()) == 0
-	      && (*HOME.rbegin() == '/' || path[HOME.length()] == '/'))
-	    {
-	      path += HOME.length() - 1;
-	      *path = '~';
-	    }
-	  psym->set_path(q::intern(canonicalize(path)));
-	}
-    }
+  if (FileSymbol *fsym = psym->get_file())
+    if (std::string const& fn = fsym->get_name();
+        fn != "")
+      {
+        if (fn[0] == '/' || fn[0] == '<')
+          // system headers and built-ins
+          psym->set_path(fsym->get_name());
+        else
+          {
+            char pathstor[curpath.length() + fn.length() + 1];
+            size_t pathlen = sizeof(pathstor);
+            char *path = pathstor;
+            stpcpy(stpcpy(path, curpath.c_str()), fn.c_str());
+            if (!HOME.empty() && pathlen > HOME.length()
+                && std::strncmp(path, HOME.c_str(), HOME.length()) == 0
+                && (*HOME.rbegin() == '/' || path[HOME.length()] == '/'))
+              {
+                path += HOME.length() - 1;
+                *path = '~';
+              }
+            psym->set_path(canonicalize(path));
+          }
+      }
 }

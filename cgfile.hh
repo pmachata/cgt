@@ -3,15 +3,14 @@
 
 #include "symbol.ii"
 #include "reader.hh"
-#include "quark.hh"
 
 #include <unordered_map>
 #include <iosfwd>
 
 class cgfile {
   typedef std::unordered_map<unsigned, ProgramSymbol*> id_psym_map;
-  typedef std::unordered_map<q::Quark, ProgramSymbol*> name_psym_map;
-  typedef std::unordered_map<q::Quark,
+  typedef std::unordered_map<std::string, ProgramSymbol*> name_psym_map;
+  typedef std::unordered_map<std::string,
                              std::unique_ptr<FileSymbol>> name_fsym_map;
 
 public:
@@ -62,7 +61,8 @@ private:
   psym_id_map m_parent_assignments;
 
   // Map of alias symbols waiting for canonical symbol to show up.
-  typedef std::vector<std::pair<q::Quark, ProgramSymbol*> > pending_aliases_map;
+  typedef std::vector<std::pair<std::string,
+                                ProgramSymbol*>> pending_aliases_map;
   pending_aliases_map m_pending_aliases;
 
   // Map of callee IDs waiting for their symbol to show up.

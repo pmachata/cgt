@@ -80,7 +80,7 @@ main(int argc, char **argv)
   std::cerr << words.size() << " words" << std::endl;
 
   psym_vect all_symbols;
-  FileSymbol *fsym = new FileSymbol(q::intern("somefile.c"));
+  FileSymbol *fsym = new FileSymbol("somefile.c");
   unsigned long line = 0;
   for (int i = 0; i < atoi(symbols); ++i)
     {
@@ -88,12 +88,11 @@ main(int argc, char **argv)
       unsigned long w = static_cast<unsigned long>(cg::rand() * words.size());
       std::string word = words[w] + '.' + to_string(i);
       auto psym = all_symbols.emplace_back
-                    (std::make_unique<ProgramSymbol>(q::intern(word),
-                                                     fsym, line)).get();
+                    (std::make_unique<ProgramSymbol>(word, fsym, line)).get();
       psym->set_static(cg::rand() > 0.5);
       psym->set_decl(cg::rand() > 0.5);
       psym->set_var(cg::rand() > 0.5);
-      psym->set_path(fsym->get_qname());
+      psym->set_path(fsym->get_name());
     }
 
   for (int i = 0; i < atoi(edges); ++i)
@@ -108,20 +107,20 @@ main(int argc, char **argv)
       psym1->add_callee(psym2);
     }
 
-  q::Quark path = NULL;
+  std::string path;
   for (auto const &psym: all_symbols)
     {
-      q::Quark psym_path = psym->get_qpath();
-      if (psym_path != path)
-	{
-	  path = psym_path;
-	  if (path == NULL)
+      if (auto psym_path = psym->get_path();
+          psym_path != path)
+        {
+          path = psym_path;
+	  if (path == "")
 	    {
 	      std::cerr << "warning unset path for symbol " << std::flush;
 	      std::cerr << psym->get_name() << ": " << std::flush;
 	      std::cerr << psym->get_file()->get_name() << "." << std::endl;
 	    }
-	  outfile << "F " << psym->get_path() << std::endl;
+	  outfile << "F " << psym_path << std::endl;
 	}
 
       psym->dump(outfile);
