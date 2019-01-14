@@ -26,6 +26,7 @@ class fd_reader {
 
 public:
   fd_reader(FD const& fd);
+  fd_reader(fd_reader &&move);
   ~fd_reader();
   char* getline();
 
@@ -41,7 +42,7 @@ void tokenize_line(char* line, tok_vect &vector);
 typedef std::vector<tok_vect> tok_vect_vect;
 void tokenize_file(fd_reader *rd, tok_vect_vect &tokens);
 
-fd_reader *open_or_die(char const* filename);
+fd_reader open_or_die(char const* filename);
 void check_stream(std::ios const& ios, char const* filename);
 
 #endif//cgt_reader_hh_guard

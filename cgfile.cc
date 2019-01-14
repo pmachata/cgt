@@ -1,4 +1,5 @@
 #include "cgfile.hh"
+#include "reader.hh"
 #include "symbol.hh"
 #include "types.hh"
 
@@ -24,10 +25,9 @@ void
 cgfile::include(char const* filename)
 {
   tok_vect_vect file_tokens;
-  fd_reader *rd = open_or_die(filename);
-  tokenize_file(rd, file_tokens);
+  fd_reader rd {std::move (open_or_die(filename))};
+  tokenize_file(&rd, file_tokens);
   include(file_tokens, filename);
-  delete rd;
 }
 
 namespace
@@ -358,10 +358,9 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
 	    incmodule = buf;
 	  }
 
-      fd_reader *rd = open_or_die(incmodule);
-      tokenize_file(rd, include_file_tokens);
+      fd_reader rd {std::move (open_or_die(incmodule))};
+      tokenize_file(&rd, include_file_tokens);
       include(include_file_tokens, incmodule);
-      delete rd;
     }
 
   clean();

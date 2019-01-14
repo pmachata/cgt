@@ -47,6 +47,14 @@ fd_reader::fd_reader(FD const& fd)
     throw errno;
 }
 
+fd_reader::fd_reader(fd_reader &&move)
+  : m_cursor {move.m_cursor}
+  , m_size {move.m_size}
+  , m_buffer {move.m_buffer}
+{
+  move.m_buffer = nullptr;
+}
+
 char*
 fd_reader::getline()
 {
@@ -109,11 +117,11 @@ tokenize_file(fd_reader *rd, tok_vect_vect &tokens)
     }
 }
 
-fd_reader *
+fd_reader
 open_or_die(char const* filename)
 {
   try {
-    return new fd_reader(FD(filename));
+    return fd_reader(FD(filename));
   }
   catch (int code) {
     std::cerr << "Error opening "

@@ -54,8 +54,8 @@ main(int argc, char **argv)
 
   std::vector<std::string> words;
   tok_vect_vect file_tokens;
-  fd_reader *rd = open_or_die("/usr/share/dict/words");
-  tokenize_file(rd, file_tokens);
+  fd_reader rd {std::move (open_or_die("/usr/share/dict/words"))};
+  tokenize_file(&rd, file_tokens);
   for (tok_vect_vect::const_iterator it = file_tokens.begin();
        it != file_tokens.end(); ++it)
     {
@@ -75,7 +75,6 @@ main(int argc, char **argv)
     skip:
       ;
     }
-  delete rd;
 
   std::cerr << words.size() << " words" << std::endl;
 
