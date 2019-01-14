@@ -1,8 +1,7 @@
-OPENMP = #-fopenmp
 TARGETS = linker randcg calgary.so
 CXXPPFLAGS = -DUSE_EXPECT $(CXXINCLUDES)
-CXXFLAGS = -Wall $(OPENMP) -g -O2 $(CXXPPFLAGS) -fPIC -std=c++17
-LDFLAGS = $(OPENMP)
+CXXFLAGS = -Wall -g -O2 $(CXXPPFLAGS) -fPIC -std=c++17
+LDFLAGS =
 
 DIRS = .
 ALLSOURCES = $(foreach dir,$(DIRS),$(wildcard $(dir)/*.cc $(dir)/*.hh $(dir)/*.ii)) Makefile
