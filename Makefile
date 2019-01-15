@@ -37,17 +37,23 @@ clean:
 cgrtest-%: TEST_CFLAGS = $(shell grep ^//: ./cases/$*.c | cut -d' ' -f 2-)
 cgrtest-%: CF = ./cases/$*.c
 cgrtest-%: CGF = ./cases/$*.cg
+cgrtest-%: LCGF = ./cases/$*.lcg
 cgrtest-%:
 	@echo -n Test cgr $*
 	@$(CC) -c $(CF) $(TEST_CFLAGS) \
 		-fplugin=$(shell pwd)/calgary.so -o tmp
+	@objcopy --dump-section=.calgary.callgraph=tmp2 tmp
 	@if [ -f $(CGF) ]; then			\
 		echo -n " (diff)";		\
-		objcopy --dump-section=.calgary.callgraph=/dev/stdout tmp \
-			| diff -u $(CGF) /dev/stdin || exit 1;	\
+		diff -u $(CGF) tmp2 || exit 1;	\
+	fi
+	@./linker tmp2 -o tmp3
+	@if [ -f $(LCGF) ]; then		\
+		echo -n " (link diff)";		\
+		diff -u $(LCGF) tmp3 || exit 2;	\
 	fi
 	@echo
-	@rm tmp
+	@rm tmp tmp2 tmp3
 .PHONY: cgrtest-%
 
 test-%:
