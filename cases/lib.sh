@@ -55,10 +55,19 @@ expectcg()
     diff -u "$expectcg" "$testcg" || exit 1
 }
 
+rm_temp()
+{
+    if [[ "$KEEP_TMP" == yes ]]; then
+        echo "$a"
+    else
+        rm -f "$a"
+    fi
+}
+
 cleanup()
 {
     cat "$TMPFILES" | while read a; do
-        rm -f "$a"
+        rm_temp "$a"
     done
     rm -f "$TMPFILES"
 }
