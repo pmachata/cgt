@@ -121,6 +121,10 @@ namespace
     // callee -> result_decl
     std::map <tree, tree> m_fab_results;
 
+    // decl -> (callee, arg#)
+    // For result decls, arg# is -1u.
+    std::map <tree, std::tuple <tree, unsigned>> m_fab_ctx;
+
   public:
     tree
     get (unsigned i, tree type, tree callee)
@@ -136,10 +140,20 @@ namespace
           tree decl = build_decl (loc, PARM_DECL, id, type);
           DECL_CONTEXT (decl) = callee;
 
-          it = m_fab_decls.insert (std::make_pair (std::make_tuple (callee, i),
-                                                   decl)).first;
+          auto ctx = std::make_tuple (callee, i);
+          it = m_fab_decls.insert (std::make_pair (ctx, decl)).first;
+          m_fab_ctx.insert (std::make_pair (decl, ctx));
         }
       return it->second;
+    }
+
+    void
+    track_result_decl (tree callee, tree resdecl)
+    {
+      assert (callee != NULL_TREE);
+      assert (resdecl != NULL_TREE);
+      m_fab_ctx.insert (std::make_pair (resdecl,
+                                        std::make_tuple (callee, -1u)));
     }
 
     tree
@@ -156,9 +170,21 @@ namespace
           DECL_ARTIFICIAL (resdecl) = 1;
           DECL_IGNORED_P (resdecl) = 1;
           it = m_fab_results.insert (std::make_pair (callee, resdecl)).first;
+          track_result_decl (callee, resdecl);
         }
       return it->second;
     }
+
+    std::tuple <tree, unsigned>
+    find_context (tree decl)
+    {
+      if (auto it = m_fab_ctx.find (decl);
+          it != m_fab_ctx.end ())
+        return it->second;
+      else
+        return std::make_tuple (NULL_TREE, -1u);
+    }
+
   };
 
   class callgraph
@@ -323,7 +349,17 @@ namespace
     {
       if (TREE_CODE (src) == PARM_DECL
           || TREE_CODE (src) == RESULT_DECL)
-        os << " ^" << DECL_UID (DECL_CONTEXT (src));
+        {
+          auto ctx = decl_fab.find_context (src);
+          tree fn = std::get <0> (ctx);
+          assert (fn != NULL_TREE);
+
+          if (unsigned arg_n = std::get <1> (ctx);
+              arg_n != -1u)
+            os << " arg " << arg_n << ' ' << DECL_UID (fn);
+          else
+            os << " rv " << DECL_UID (fn);
+        }
     }
 
     void
@@ -698,7 +734,11 @@ namespace
         if (tree dst = TREE_OPERAND (t, 0);
             is_function_type (TREE_TYPE (dst)))
           if (tree dst2 = get_destination (dst))
-            walk (dst2, TREE_OPERAND (t, 1), cg, level + 1);
+            {
+              if (TREE_CODE (dst2) == RESULT_DECL)
+                cg.decl_fab.track_result_decl (DECL_CONTEXT (dst2), dst2);
+              walk (dst2, TREE_OPERAND (t, 1), cg, level + 1);
+            }
         return;
 
       case ADDR_EXPR: // Fall through.

@@ -56,9 +56,10 @@ private:
   id_psym_map m_id_assignments;
   name_psym_map m_name_assignments;
 
-  // Assignments [symbol -> parent ID]
-  typedef std::unordered_map<ProgramSymbol*, unsigned> psym_id_map;
-  psym_id_map m_parent_assignments;
+  // Assignments [symbol -> (parent ID, arg#)]
+  typedef std::unordered_map<ProgramSymbol*, std::pair<unsigned,
+                                                       unsigned>> psym_ctx_map;
+  psym_ctx_map m_parent_assignments;
 
   // Map of alias symbols waiting for canonical symbol to show up.
   typedef std::vector<std::pair<std::string,

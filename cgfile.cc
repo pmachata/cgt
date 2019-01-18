@@ -33,6 +33,20 @@ cgfile::include(char const* filename)
 namespace
 {
   unsigned
+  get_arg_n(const char *strp, const char *curmodule,
+            ProgramSymbol *psym)
+  {
+    char *endp;
+    unsigned arg_n = std::strtoul(strp, &endp, 10);
+    if (*endp != 0)
+      std::cerr << "warning: " << curmodule
+                << ": symbol " << psym->get_name()
+                << " is an argument with a suspicious number " << strp
+                << std::endl;
+    return arg_n;
+  }
+
+  unsigned
   get_callee_id(const char *strp, const char *curmodule,
                 ProgramSymbol *psym)
   {
@@ -43,6 +57,23 @@ namespace
                 << " calls suspicious id " << strp << std::endl;
     return callee_id;
   }
+}
+
+void
+cgfile::add_parent(char const *curmodule,
+                   ProgramSymbol *psym, unsigned parent_id, unsigned arg_n)
+{
+  if (auto it = m_parent_assignments.find(psym);
+      it != m_parent_assignments.end()
+      && it->second != std::make_pair(parent_id, arg_n))
+    std::cerr << "warning: " << curmodule
+              << ": the context of symbol declared twice incompatibly"
+              << std::endl;
+  else
+    {
+      auto ctx = std::make_pair(parent_id, arg_n);
+      m_parent_assignments.insert(std::make_pair(psym, ctx));
+    }
 }
 
 size_t
@@ -258,7 +289,6 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
       while (i < tokens_size)
         {
           strp = tokens[i++];
-          unsigned callee_id;
           if (strp[0] == '*' && strp[1] == 0)
             {
               // We have the more accurate callee tracking now, so ignore
@@ -268,22 +298,39 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
                         << " calls unsupported callee '*'\n";
               continue;
             }
-          else if (strp[0] == '^')
+          else if (strp[0] == 'a' && strp[1] == 'r'
+                   && strp[2] == 'g' && strp[3] == 0)
             {
-              callee_id = get_callee_id(strp + 1, curmodule, psym);
-              if (auto it = m_parent_assignments.find(psym);
-                  it != m_parent_assignments.end()
-                  && it->second != callee_id)
-                std::cerr << "warning: " << curmodule
-                          << ": the parent of symbol " << psym->get_name()
-                          << " declared as both " << callee_id
-                          << " and " << it->second << std::endl;
-              else
-                m_parent_assignments.insert(std::make_pair(psym, callee_id));
+              if (i + 2 > tokens_size)
+                {
+                  std::cerr << "warning: " << curmodule
+                            << ": malformed argument declaration in "
+                            << psym->get_name() << std::endl;
+                  break;
+                }
+
+              unsigned arg_n = get_arg_n(tokens[i++], curmodule, psym);
+              unsigned parent_id = get_callee_id(tokens[i++], curmodule, psym);
+              add_parent(curmodule, psym, parent_id, arg_n);
               continue;
             }
-          else
-            callee_id = get_callee_id(strp, curmodule, psym);
+          else if (strp[0] == 'r' && strp[1] == 'v' && strp[2] == 0)
+            {
+              if (i + 1 > tokens_size)
+                {
+                  std::cerr << "warning: " << curmodule
+                            << ": malformed return valud declaration in "
+                            << psym->get_name() << std::endl;
+                  break;
+                }
+
+              unsigned parent_id = get_callee_id(tokens[i++], curmodule, psym);
+              add_parent(curmodule, psym, parent_id, -1u);
+              continue;
+            }
+
+          unsigned callee_id;
+          callee_id = get_callee_id(strp, curmodule, psym);
 
           id_psym_map::const_iterator it;
           // If we have already seen the declaration, resolve the callee

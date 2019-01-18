@@ -1,10 +1,10 @@
 F ./cases/init_fp.c
 1794 (1) foo 1797
-1797 (1) @decl foo()::(arg:0) ^1794 1805 1813
+1797 (1) @decl foo()::(arg:0) arg 0 1794 1805 1813
 1801 (6) @decl getcb
 1803 (7) bar 1794 1801
 1811 (16) baz 1809 1794
-1805 (6) @decl getcb()::(ret) ^1801
-1813 (14) @decl foo::getcb::(ret) ^1809
+1805 (6) @decl getcb()::(ret) rv 1801
+1813 (14) @decl foo::getcb::(ret) rv 1809
 1809 (14) @decl foo::getcb
 ---
