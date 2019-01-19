@@ -276,6 +276,9 @@ namespace
       assert (node != NULL_TREE);
       if (!true)
         std::cerr << "add node:" << dump_callee (node) << std::endl;
+
+      if (!TREE_PUBLIC (node))
+        flags |= callgraph::NODE_STATIC;
       m_nodes[node] |= flags;
     }
 
@@ -907,8 +910,6 @@ public:
 
 
     unsigned flags = callgraph::NODE_DEF;
-    if (!TREE_PUBLIC (fn))
-      flags |= callgraph::NODE_STATIC;
     m_cg.add_node (fn, flags);
 
     if (tree body = DECL_SAVED_TREE (fn))
