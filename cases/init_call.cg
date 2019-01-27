@@ -1,7 +1,7 @@
 F ./cases/init_call.c
-1800 (8) @decl getf()::(ret) rv 1799 1795
+1800 (8) @var getf()::(ret) rv 1799 1795
 1795 (3) f
 1799 (8) getf
 1801 (13) foo 1799
-1793 (1) @decl fp 1800
+1793 (1) @var fp 1800
 ---

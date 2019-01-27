@@ -192,6 +192,7 @@ namespace
   public:
     static constexpr unsigned NODE_DEF    = 1 << 0;
     static constexpr unsigned NODE_STATIC = 1 << 1;
+    static constexpr unsigned NODE_VAR    = 1 << 2;
 
     class decl_fab &decl_fab;
 
@@ -203,57 +204,39 @@ namespace
     // (caller, callee)
     std::set <std::tuple <tree, tree>> m_edges;
 
-    // struct -> name
-    std::map <tree, std::string> &m_typedefs;
+    // struct -> tree used to name the type
+    std::map <tree, tree> &m_typedefs;
+
+    // field/var -> context
+    // Keeps track of the context in which a field or a variable is defined.
+    // This could be a function, a structure (for a field), a typedef or
+    // variable name (for a field in an anonymous structure) or perhaps another
+    // disambiguator.
+    std::map <tree, tree> &m_context;
 
   public:
-    // xxx All this looks like it could be folded to one function that
-    // recursively traverses higher contexts and dumps each as necessary.
-    std::string dump_rcontext (tree record)
-    {
-      if (std::string name = type_name (record); name != "")
-        return name + "::";
-      else if (auto it = m_typedefs.find (record);
-               it != m_typedefs.end ())
-        return std::get <1> (*it) + "::";
-      else
-        die ("Unknown structure name");
-    }
-
-    std::string
-    dump_fcontext (tree decl)
-    {
-      if (decl != NULL_TREE)
-        switch (static_cast <int> (TREE_CODE (decl)))
-          {
-          case FUNCTION_DECL:
-            {
-              std::string ret;
-              if (tree ctx = DECL_CONTEXT (decl);
-                  ctx != NULL_TREE && TREE_CODE (ctx) == FUNCTION_DECL)
-                ret += dump_fcontext (ctx);
-              return ret + decl_name (decl) + "()::";
-            }
-
-          case FIELD_DECL: // Fall through.
-          case VAR_DECL:
-            // The callee is a fabricated function argument for calls to
-            // function pointers.
-            return dump_rcontext (DECL_CONTEXT (decl))
-                 + decl_name (decl) + "::";
-          }
-      return "";
-    }
-
     std::string
     dump_callee (tree callee)
     {
       assert (DECL_P (callee));
 
-      std::string ret = dump_fcontext (DECL_CONTEXT (callee));
-
-      if (TREE_CODE (callee) == FIELD_DECL)
-        ret += dump_rcontext (DECL_CONTEXT (callee));
+      std::string ret;
+      for (tree context = node_context (callee); context != NULL_TREE;
+           context = node_context (context))
+        {
+          std::string prefix = TYPE_P (context)
+            ? type_name (context) : decl_name (context);
+          switch (static_cast <int> (TREE_CODE (context)))
+            {
+            case FUNCTION_DECL:
+              prefix += "()";
+              break;
+            case VAR_DECL:
+              prefix = "." + prefix;
+              break;
+            }
+          ret = prefix + "::" + ret;
+        }
 
       if (TREE_CODE (callee) == RESULT_DECL)
         ret += "(ret)";
@@ -264,12 +247,53 @@ namespace
     }
 
     explicit callgraph (class decl_fab &fab,
-                        std::map <tree, std::string> &typedefs,
+                        std::map <tree, tree> &typedefs,
+                        std::map <tree, tree> &context,
                         tree dfsrc = NULL_TREE)
       : decl_fab {fab}
       , m_dfsrc {dfsrc}
       , m_typedefs {typedefs}
+      , m_context {context}
     {}
+
+    tree
+    node_context (tree node)
+    {
+      if (auto it = m_context.find (node);
+          it != m_context.end ())
+        {
+          tree context = it->second;
+
+          // Context of anonymous structures is whatever lends them name.
+          if (TYPE_P (context))
+            if (type_name (context)[0] == '\0')
+              {
+                if (auto jt = m_typedefs.find (context);
+                    jt != m_typedefs.end ())
+                  context = jt->second;
+                else
+                  die ("Unknown structure name");
+              }
+
+          return context;
+        }
+
+      if (tree context = DECL_CONTEXT (node))
+        if (TREE_CODE (context) != TRANSLATION_UNIT_DECL)
+          return context;
+
+      return NULL_TREE;
+   }
+
+    tree
+    get_toplev_context (tree node)
+    {
+      // This will return `node' if it's itself a top level function.
+      while (tree ctx = node_context (node))
+        node = ctx;
+
+      return node;
+    }
 
     void
     add_node (tree node, unsigned flags)
@@ -278,8 +302,29 @@ namespace
       if (!true)
         std::cerr << "add node:" << dump_callee (node) << std::endl;
 
-      if (!TREE_PUBLIC (node))
-        flags |= callgraph::NODE_STATIC;
+
+      switch (static_cast <int> (TREE_CODE (node)))
+        {
+        case VAR_DECL:
+          if (!DECL_EXTERNAL (node))
+        case FIELD_DECL:
+        case RESULT_DECL:
+        case PARM_DECL:
+            flags |= callgraph::NODE_DEF;
+          flags |= callgraph::NODE_VAR;
+          // Fall through.
+        default:
+          if (tree toplev_ctx = get_toplev_context (node))
+            if (!TREE_PUBLIC (toplev_ctx))
+              // Types are implicitly static, but in C it is common to see
+              // structure sharing by inlining the same type definition in
+              // several different translation units. Correspondingly, pretend
+              // that types are actually extern.
+              if (!(TYPE_P (toplev_ctx)
+                    || TREE_CODE (toplev_ctx) == TYPE_DECL))
+                flags |= callgraph::NODE_STATIC;
+        }
+
       m_nodes[node] |= flags;
     }
 
@@ -307,11 +352,30 @@ namespace
     }
 
     void
-    add_typename (tree type, std::string name)
+    add_typename (tree type, tree name)
     {
       // xxx is it guaranteed that names are going to be the same between
       // compilation units?
       m_typedefs.insert ({type, name}).second;
+    }
+
+    void
+    add_context (tree node, tree context)
+    {
+      if (auto it = m_context.find (node);
+          it != m_context.end ())
+        assert (it->second == context);
+      else
+        m_context.insert (std::make_pair (node, context));
+    }
+
+    void
+    add_context_to (tree node)
+    {
+      if (tree context = TYPE_P (node)
+                            ? TYPE_CONTEXT (node) : DECL_CONTEXT (node))
+        if (TREE_CODE (context) != TRANSLATION_UNIT_DECL)
+          add_context (node, context);
     }
 
     static std::pair <const char *, unsigned>
@@ -345,6 +409,7 @@ namespace
       os << DECL_UID (src) << " (" << lineno << ") "
          << (flags & NODE_STATIC ? "@static " : "")
          << (flags & NODE_DEF ? "" : "@decl ")
+         << (flags & NODE_VAR ? "@var " : "")
          << dump_callee (src);
     }
 
@@ -463,7 +528,18 @@ namespace
     void
     merge (callgraph &&other)
     {
+      // Merge the subset of nodes used by edges that survived the pruning done
+      // by propagate.
+      for (auto const &edge: other.m_edges)
+        {
+          tree src = std::get <0> (edge);
+          tree dst = std::get <1> (edge);
+          m_nodes[src] |= other.m_nodes.find (src)->second;
+          m_nodes[dst] |= other.m_nodes.find (dst)->second;
+        }
+
       m_edges.merge (std::move (other.m_edges));
+      m_context.merge (std::move (other.m_context));
     }
   };
 
@@ -624,6 +700,8 @@ namespace
                 << " (" << decl_name (decl) << ')' << std::endl;
     assert (DECL_P (decl));
 
+    cg.add_context_to (decl);
+
     switch (static_cast <int> (TREE_CODE (decl)))
       {
       case TYPE_DECL:
@@ -739,7 +817,7 @@ namespace
         return;
 
       case MODIFY_EXPR:
-        // Operand 0 is the what to set; 1, the new value.
+        // Operand 0 is what to set; 1, the new value.
         walk (src, TREE_OPERAND (t, 1), cg, level + 1);
         // If operand 0 is interesting, rerun with a new src. That's currently
         // the only way to add an edge from two sources.
@@ -880,19 +958,38 @@ namespace
     std::cerr << tcn (t) << std::endl;
     die ("unhandled node");
   }
+
+  void
+  walk_type (tree t, callgraph &cg, unsigned level = 0)
+  {
+    if (!true)
+      std::cerr << spaces (level) << "type:" << tcn (t) << std::endl;
+
+    switch (static_cast <int> (TREE_CODE (t)))
+      {
+      case RECORD_TYPE:
+        cg.add_context_to (t);
+        for (tree field = TYPE_FIELDS (t); field != NULL_TREE;
+             field = TREE_CHAIN (field))
+          walk (NULL_TREE, field, cg, level + 1);
+        break;
+      }
+  }
 }
 
 class calgary
 {
   std::stringstream m_ofs;
   decl_fab m_fab;
-  std::map <tree, std::string> m_typedefs;
+  std::map <tree, tree> m_typedefs;
+  std::map <tree, tree> m_context;
   callgraph m_cg;
+  std::set <tree> m_seen_types;
 
 public:
   explicit calgary ()
     : m_fab {}
-    , m_cg {m_fab, m_typedefs}
+    , m_cg {m_fab, m_typedefs, m_context}
   {}
 
   void
@@ -923,7 +1020,7 @@ public:
 
     if (tree body = DECL_SAVED_TREE (fn))
       {
-        callgraph cg {m_fab, m_typedefs, fn};
+        callgraph cg {m_fab, m_typedefs, m_context, fn};
         walk (NULL_TREE, body, cg);
         cg.propagate ();
         m_cg.merge (std::move (cg));
@@ -961,21 +1058,7 @@ public:
         // structure as well.
         if (tree type = find_record_type (TREE_TYPE (decl)))
           if (type_name (type) == ""s)
-            {
-              // When a variable is used as a context (whether it's global or
-              // local), we need to mangle it, so that a type:: doesn't clash
-              // with a var::.
-              //
-              // Local variables on their own never get to the final call graph,
-              // so their name is irrelevant. For global variables, it's better
-              // if the name stays unmangled. Therefore just mangle here,
-              // instead of doing it in dump_callee.
-              std::string prefix;
-              if (tree context = DECL_CONTEXT (decl))
-                prefix = m_cg.dump_fcontext (context);
-              m_cg.add_typename (find_main_type (type),
-                                 prefix + "."s + decl_name (decl));
-            }
+            m_cg.add_typename (find_main_type (type), decl);
 
         // Local variables are processed when walking the function body.
         if (tree context = DECL_CONTEXT (decl))
@@ -990,7 +1073,7 @@ public:
 
       case TYPE_DECL:
         if (tree type = DECL_ORIGINAL_TYPE (decl))
-          m_cg.add_typename (find_main_type (type), decl_name (decl));
+          m_cg.add_typename (find_main_type (type), decl);
         return;
 
       default:
@@ -1004,7 +1087,7 @@ public:
 
     if (DECL_INITIAL (decl))
       {
-        callgraph cg {m_fab, m_typedefs, decl};
+        callgraph cg {m_fab, m_typedefs, m_context, decl};
         walk_decl (decl, cg, 0);
         cg.propagate ();
         m_cg.merge (std::move (cg));
@@ -1016,10 +1099,8 @@ public:
   finish_type (tree type)
   {
     assert (TYPE_P (type));
-    return; // xxx drop this altogether
 
-    static std::set <tree> seen;
-    if (seen.find (type) != seen.end ())
+    if (!m_seen_types.insert (type).second)
       return;
 
     if (!true)
@@ -1027,7 +1108,10 @@ public:
                 << type_name (type) << std::endl
                 << "-------------\n";
 
-    seen.insert (type);
+    callgraph cg {m_fab, m_typedefs, m_context};
+    walk_type (type, cg);
+    cg.propagate ();
+    m_cg.merge (std::move (cg));
   }
 
   void

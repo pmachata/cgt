@@ -1,5 +1,5 @@
 F /tmp/A.c
-3 (2) @decl foo()::(arg:0) 1 5
+3 (2) @var foo()::(arg:0) 1 5
 4 (4) main 2
 F /tmp/C.c
 1 (1) bar

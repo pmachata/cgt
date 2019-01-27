@@ -1,7 +1,7 @@
 F ./cases/init_cond_cb.c
+1796 (4) @var ebl::disasm
+1799 (9) @var ctx::symcb
 1801 (12) @static null_elf_getsym
-1808 (4) @decl ebl::disasm::(arg:0) arg 0 1796 1799 1801
+1808 (4) @var ebl::disasm::(arg:0) arg 0 1796 1799 1801
 1804 (17) foo 1796
-1796 (4) @decl ebl::disasm
-1799 (9) @decl ctx::symcb
 ---

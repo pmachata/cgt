@@ -1,5 +1,5 @@
 F ./cases/init_global.c
+1794 (3) @var foo::debugscn_p
 1798 (9) foo
-1796 (6) @decl generic_debugscn_p 1794
-1794 (3) @decl foo::debugscn_p
+1796 (6) @decl @var generic_debugscn_p 1794
 ---
