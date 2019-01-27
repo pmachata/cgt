@@ -67,6 +67,12 @@ namespace
     return IDENTIFIER_POINTER (tn);
   }
 
+  bool
+  no_type_name (tree type)
+  {
+    return type_name (type)[0] == '\0';
+  }
+
   const char *
   decl_name (tree decl)
   {
@@ -265,15 +271,14 @@ namespace
           tree context = it->second;
 
           // Context of anonymous structures is whatever lends them name.
-          if (TYPE_P (context))
-            if (type_name (context)[0] == '\0')
-              {
-                if (auto jt = m_typedefs.find (context);
-                    jt != m_typedefs.end ())
-                  context = jt->second;
-                else
-                  die ("Unknown structure name");
-              }
+          if (TYPE_P (context) && no_type_name (context))
+            {
+              if (auto jt = m_typedefs.find (context);
+                  jt != m_typedefs.end ())
+                context = jt->second;
+              else
+                die ("Unknown structure name");
+            }
 
           return context;
         }
@@ -993,6 +998,14 @@ public:
   {}
 
   void
+  possible_anon_struct_name (tree type, tree decl)
+  {
+    if (tree rec = find_record_type (type))
+      if (no_type_name (rec))
+        m_cg.add_typename (find_main_type (rec), decl);
+  }
+
+  void
   finish_parse_function (tree fn)
   {
     assert (TREE_CODE (fn) == FUNCTION_DECL);
@@ -1017,6 +1030,8 @@ public:
 
     unsigned flags = callgraph::NODE_DEF;
     m_cg.add_node (fn, flags);
+
+    possible_anon_struct_name (TREE_TYPE (TREE_TYPE (fn)), fn);
 
     if (tree body = DECL_SAVED_TREE (fn))
       {
@@ -1056,9 +1071,7 @@ public:
       case VAR_DECL:
         // A variable name may be used as an identifier of an anonymous
         // structure as well.
-        if (tree type = find_record_type (TREE_TYPE (decl)))
-          if (type_name (type) == ""s)
-            m_cg.add_typename (find_main_type (type), decl);
+        possible_anon_struct_name (TREE_TYPE (decl), decl);
 
         // Local variables are processed when walking the function body.
         if (tree context = DECL_CONTEXT (decl))
