@@ -656,6 +656,7 @@ namespace
 
     switch (static_cast <int> (TREE_CODE (type)))
       {
+      case UNION_TYPE: // Fall through.
       case RECORD_TYPE:
         return type;
       case ARRAY_TYPE:
@@ -972,6 +973,7 @@ namespace
 
     switch (static_cast <int> (TREE_CODE (t)))
       {
+      case UNION_TYPE: // Fall through.
       case RECORD_TYPE:
         cg.add_context_to (t);
         for (tree field = TYPE_FIELDS (t); field != NULL_TREE;
