@@ -207,6 +207,48 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
 		      << "' to `" << name << '\'' << std::endl;
 	}
 
+      unsigned parent_id = 0;
+      unsigned arg_n = -2u;
+      if (i < tokens_size)
+        {
+          strp = tokens[i];
+          // Parse parental references if any.
+          if (strp[0] == 'a' && strp[1] == 'r'
+              && strp[2] == 'g' && strp[3] == 0)
+            {
+              i++;
+              if (i + 2 > tokens_size)
+                {
+                  std::cerr << "warning: " << curmodule
+                            << ": malformed argument declaration in "
+                            << psym->get_name() << std::endl;
+                  i = tokens_size;
+                }
+              else
+                {
+                  arg_n = get_arg_n(tokens[i++], curmodule, psym);
+                  parent_id = get_callee_id(tokens[i++], curmodule, psym);
+                  if (parent_id == 0)
+                    std::cerr << "warning: " << curmodule
+                              << ": parent with invalid ID of 0 will be ignored"
+                              << std::endl;
+                }
+            }
+          else if (strp[0] == 'r' && strp[1] == 'v' && strp[2] == 0)
+            {
+              i++;
+              if (i + 1 > tokens_size)
+                std::cerr << "warning: " << curmodule
+                          << ": malformed return valud declaration in "
+                          << psym->get_name() << std::endl;
+              else
+                {
+                  arg_n = -1u;
+                  parent_id = get_callee_id(tokens[i++], curmodule, psym);
+                }
+            }
+        }
+
       // Above, we have bound a symbol.  Check the sanity of
       // that binding.
       if (psym != NULL)
@@ -216,7 +258,8 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
 	  // projects.
 	  // @TODO: warn if redefined symbols are callees
 	  if (!psym->is_decl() && !is_decl
-	      && psym->get_file() != fsym)
+	      && psym->get_file() != fsym
+	      && parent_id == 0)
 	    psym = NULL;
 	  else
 	    {
@@ -268,6 +311,11 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
 	  maybe_enlist = true;
 	}
 
+      // Now that we have a symbol, add parent information that we gleaned
+      // above.
+      if (parent_id != 0)
+        add_parent (curmodule, psym, parent_id, arg_n);
+
       // Handle aliases.  If we've already seen this name.  Make
       // the new symbol alias the other one.  Otherwise make it
       // pending alias.  Only look up local symbols, because
@@ -296,36 +344,6 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
               std::cerr << "warning: " << curmodule
                         << ": symbol " << psym->get_name()
                         << " calls unsupported callee '*'\n";
-              continue;
-            }
-          else if (strp[0] == 'a' && strp[1] == 'r'
-                   && strp[2] == 'g' && strp[3] == 0)
-            {
-              if (i + 2 > tokens_size)
-                {
-                  std::cerr << "warning: " << curmodule
-                            << ": malformed argument declaration in "
-                            << psym->get_name() << std::endl;
-                  break;
-                }
-
-              unsigned arg_n = get_arg_n(tokens[i++], curmodule, psym);
-              unsigned parent_id = get_callee_id(tokens[i++], curmodule, psym);
-              add_parent(curmodule, psym, parent_id, arg_n);
-              continue;
-            }
-          else if (strp[0] == 'r' && strp[1] == 'v' && strp[2] == 0)
-            {
-              if (i + 1 > tokens_size)
-                {
-                  std::cerr << "warning: " << curmodule
-                            << ": malformed return valud declaration in "
-                            << psym->get_name() << std::endl;
-                  break;
-                }
-
-              unsigned parent_id = get_callee_id(tokens[i++], curmodule, psym);
-              add_parent(curmodule, psym, parent_id, -1u);
               continue;
             }
 
