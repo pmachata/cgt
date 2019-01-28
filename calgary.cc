@@ -307,14 +307,17 @@ namespace
       if (!true)
         std::cerr << "add node:" << dump_callee (node) << std::endl;
 
-
+      tree parnode = node;
       switch (static_cast <int> (TREE_CODE (node)))
         {
+        case PARM_DECL:
+          parnode = DECL_CONTEXT (node);
+          // Fall through.
         case VAR_DECL:
-          if (!DECL_EXTERNAL (node))
+          if (!DECL_EXTERNAL (parnode))
+            // Fall through.
         case FIELD_DECL:
         case RESULT_DECL:
-        case PARM_DECL:
             flags |= callgraph::NODE_DEF;
           flags |= callgraph::NODE_VAR;
           // Fall through.
