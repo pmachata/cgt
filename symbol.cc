@@ -13,7 +13,7 @@ struct cmp_id {
 
 ProgramSymbol::ProgramSymbol(std::string name, FileSymbol *file, unsigned line)
   : Symbol(name)
-  , m_id(gen_id())
+  , m_id {-1u}
   , m_file(file)
   , m_line_number(line)
   , m_is_static(false)
@@ -30,6 +30,20 @@ ProgramSymbol::ProgramSymbol(std::string name, FileSymbol *file, unsigned line)
 ProgramSymbol::~ProgramSymbol()
 {
   clear_callers();
+}
+
+void
+ProgramSymbol::assign_id ()
+{
+  assert (m_id == -1u);
+  m_id = gen_id ();
+}
+
+unsigned
+ProgramSymbol::get_id () const
+{
+  assert (m_id != -1u);
+  return m_id;
 }
 
 void

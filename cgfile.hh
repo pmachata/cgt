@@ -20,6 +20,7 @@ public:
   void include(char const* filename);
   void sort_psyms_by_file();
   void propagate_varlinks();
+  void assign_ids ();
   void dump(std::ostream & o) const;
 
   // `include' doesn't compute callers by default, only callees.  Call

@@ -1,9 +1,9 @@
 F /tmp/A.c
-3 (2) @var foo()::(arg:0) 1 5
-4 (4) main 2
-F /tmp/C.c
-1 (1) bar
-2 (11) foo 3
-5 (6) baz
+1 (4) main 4
 F /tmp/B.c
-6 (4) twain 2
+2 (4) twain 4
+F /tmp/C.c
+3 (1) bar
+4 (11) foo 5
+5 (11) @var foo()::(arg:0) 3 6
+6 (6) baz

@@ -75,5 +75,6 @@ main(int argc, char **argv)
   f.propagate_varlinks();
   f.sort_psyms_by_file();
   f.compute_used();
+  f.assign_ids();
   f.dump(outs);
 }

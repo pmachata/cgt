@@ -450,7 +450,13 @@ namespace {
   struct compare_psyms_file {
     bool operator()(std::unique_ptr<ProgramSymbol> const &ps1,
                     std::unique_ptr<ProgramSymbol> const &ps2) {
-      return ps1->get_file() < ps2->get_file();
+      FileSymbol *fsym1 = ps1->get_file ();
+      FileSymbol *fsym2 = ps2->get_file ();
+      // File-less symbols should go first.
+      if (fsym1 == nullptr || fsym2 == nullptr)
+        return fsym1 < fsym2;
+      // After them all files go in alphabetic order.
+      return fsym1->get_name () < fsym2->get_name ();
     }
   };
 }
@@ -484,6 +490,13 @@ cgfile::propagate_varlinks()
               for (auto const &callee: symbol->get_callees ())
                 child->add_callee (callee);
             }
+}
+
+void
+cgfile::assign_ids ()
+{
+  for (auto const &psym: m_all_program_symbols)
+    psym->assign_id ();
 }
 
 void

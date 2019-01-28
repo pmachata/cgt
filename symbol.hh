@@ -37,7 +37,8 @@ public:
   ProgramSymbol(std::string name, FileSymbol *file, unsigned line);
   ~ProgramSymbol();
 
-  unsigned get_id() const { return m_id; }
+  void assign_id ();
+  unsigned get_id () const;
 
   void add_callee(ProgramSymbol * sym);
   psym_set const& get_callees() const { return m_callees; }
@@ -79,7 +80,7 @@ public:
   void dump(std::ostream & o) const;
 
 private:
-  unsigned const m_id;
+  unsigned m_id;
   FileSymbol *m_file;
   std::string m_path;
   unsigned m_line_number;
