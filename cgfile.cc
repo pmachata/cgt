@@ -231,7 +231,7 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
 		std::cerr << "warning: " << curmodule << ": "
 			  << (psym->is_var() ? "variable" : "function")
 			  << " symbol " << psym->get_name() << " redefined as "
-			  << (is_static ? "variable" : "function") << std::endl;
+			  << (is_var ? "variable" : "function") << std::endl;
 	    }
 
 	  if (psym != NULL)
