@@ -1,0 +1,8 @@
+F ./cases/propagate.c
+1795 (4) @var ops::cb 1798
+1798 (7) foo 1800
+1800 (7) @var foo()::(arg:0) arg 0 1798
+1808 (4) @var ops::cb::(arg:0) arg 0 1795 1802
+1802 (11) bar
+1805 (15) main 1795
+---

@@ -72,6 +72,7 @@ main(int argc, char **argv)
 
   cgfile f;
   link(argv + optind, argc - optind, f);
+  f.propagate_varlinks();
   f.sort_psyms_by_file();
   f.compute_used();
   f.dump(outs);

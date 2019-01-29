@@ -19,6 +19,7 @@ public:
   void include(tok_vect_vect const& file_tokens, char const* curmodule);
   void include(char const* filename);
   void sort_psyms_by_file();
+  void propagate_varlinks();
   void dump(std::ostream & o) const;
 
   // `include' doesn't compute callers by default, only callees.  Call
@@ -33,6 +34,8 @@ public:
 
 private:
   void clean();
+  void add_parent(char const *curmodule,
+                  ProgramSymbol *psym, unsigned parent_id, unsigned arg_n);
 
   psym_vect m_all_program_symbols;
   name_fsym_map m_file_symbols;

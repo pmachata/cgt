@@ -387,6 +387,26 @@ cgfile::include(tok_vect_vect const& file_tokens, char const* curmodule,
        it != m_id_assignments.end(); ++it)
     it->second->resolve_callee_aliases();
 
+  // Resolve parents.
+  for (auto sym_to_ctx: m_parent_assignments)
+    {
+      ProgramSymbol *psym = sym_to_ctx.first;
+      auto ctx = sym_to_ctx.second;
+      unsigned parent_id = ctx.first;
+      unsigned arg_n = ctx.second;
+
+      if (auto it = m_id_assignments.find(parent_id);
+          it != m_id_assignments.end())
+        {
+          psym->set_parent(it->second, arg_n);
+          it->second->add_child(psym, arg_n);
+        }
+      else
+        std::cerr << "warning: " << curmodule
+                  << ": the parent of symbol " << psym->get_name()
+                  << " (id " << parent_id << ") does not exist" << std::endl;
+    }
+
   // Finally process "I" directives that we've seen in this file.
   // This is done in extra step at the end, so that it is not a
   // problem to reuse the global state (that's erased in `clean').
@@ -441,6 +461,29 @@ cgfile::sort_psyms_by_file()
   std::sort(m_all_program_symbols.begin(),
 	    m_all_program_symbols.end(),
 	    ::compare_psyms_file());
+}
+
+void
+cgfile::propagate_varlinks()
+{
+  // Find @var nodes with parents.
+  // Find parent, which shall be a function pointer (and therefore @var)
+  // For each actual function (callee of parent):
+  //   Find actual's child corresponding to the original node.
+  //   Copy callees from the original node to the child.
+  for (auto const &symbol: m_all_program_symbols)
+    if (symbol->is_var ())
+      if (ProgramSymbol *parent = symbol->get_parent ())
+        if (parent->is_var ())
+          for (auto const &actual: parent->get_callees ())
+            {
+              unsigned arg_n = symbol->get_arg_n ();
+              ProgramSymbol *child = actual->get_child (arg_n);
+              assert (child != nullptr);
+              // xxx add the child on demand
+              for (auto const &callee: symbol->get_callees ())
+                child->add_callee (callee);
+            }
 }
 
 void

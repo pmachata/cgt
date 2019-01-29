@@ -22,6 +22,8 @@ ProgramSymbol::ProgramSymbol(std::string name, FileSymbol *file, unsigned line)
   , m_used(false)
   , m_forward_to(NULL)
   , m_callers(NULL)
+  , m_parent {nullptr}
+  , m_arg_n {-2u}
 {
 }
 
@@ -83,6 +85,37 @@ ProgramSymbol::set_forward_to(ProgramSymbol *other)
 {
   assert (m_forward_to == NULL);
   m_forward_to = other;
+}
+
+void
+ProgramSymbol::set_parent (ProgramSymbol *other, unsigned arg_n)
+{
+  assert (m_parent == nullptr || m_parent == other);
+  m_parent = other;
+  m_arg_n = arg_n;
+}
+
+unsigned
+ProgramSymbol::get_arg_n () const
+{
+  assert (m_parent != nullptr);
+  return m_arg_n;
+}
+
+void
+ProgramSymbol::add_child (ProgramSymbol *child, unsigned arg_n)
+{
+  m_children.insert (std::make_pair (arg_n, child));
+}
+
+ProgramSymbol *
+ProgramSymbol::get_child (unsigned arg_n)
+{
+  if (auto it = m_children.find (arg_n);
+      it != m_children.end ())
+    return it->second;
+  else
+    return nullptr;
 }
 
 void

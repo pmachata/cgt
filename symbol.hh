@@ -7,6 +7,7 @@
 #include <cassert>
 #include <iosfwd>
 #include <string>
+#include <unordered_map>
 
 struct Symbol {
   Symbol(std::string name)
@@ -49,6 +50,12 @@ public:
   void set_forward_to(ProgramSymbol *other);
   bool is_forwarder() const { return m_forward_to != NULL; }
 
+  void set_parent (ProgramSymbol *other, unsigned arg_n);
+  ProgramSymbol *get_parent () const { return m_parent; }
+  unsigned get_arg_n () const;
+  void add_child (ProgramSymbol *child, unsigned arg_n);
+  ProgramSymbol *get_child (unsigned arg_n);
+
   void set_static(bool is_static) { m_is_static = is_static; }
   void set_decl(bool is_decl) { m_is_decl = is_decl; }
   void set_var(bool is_var) { m_is_var = is_var; }
@@ -79,8 +86,16 @@ private:
   bool m_is_static, m_is_decl, m_is_var;
   bool m_used; // whether anyone calls it
   ProgramSymbol *m_forward_to; // set if this symbol is an alias
+
   psym_set m_callees;
   mutable psym_set * m_callers;
+
+  // Tracking function arguments and return values. m_parent is the parental
+  // function, m_arg_n is the argument# (starting with 0, and -1 means return
+  // value). m_children is the reverse mapping.
+  ProgramSymbol *m_parent;
+  unsigned m_arg_n;
+  std::unordered_map <unsigned, ProgramSymbol *> m_children;
 
   friend class ProgramSymbol_binder;
 };

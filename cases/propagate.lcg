@@ -1,0 +1,7 @@
+F cases/propagate.c
+1 (4) @var ops::cb 2
+2 (7) foo 3
+3 (7) @var foo()::(arg:0) 5
+4 (4) @var ops::cb::(arg:0) 5
+5 (11) bar
+6 (15) main 1
