@@ -627,6 +627,8 @@ namespace
     switch (static_cast <int> (TREE_CODE (decl)))
       {
       case TYPE_DECL:
+      case FIELD_DECL:
+      case PARM_DECL:
         return;
       case FUNCTION_DECL:
         // finish_parse_function() will have already seen body of this function.
@@ -709,15 +711,6 @@ namespace
     if (!true)
       std::cerr << spaces (level) << tcn (t) << std::endl;
 
-    if (DECL_P (t))
-      {
-        if (TREE_CODE (t) == PARM_DECL)
-          t = translate_parm_decl (t, cg);
-        if (src != NULL_TREE)
-          cg.add (src, t);
-        return;
-      }
-
     if (CONSTANT_CLASS_P (t))
       return;
 
@@ -730,6 +723,20 @@ namespace
 
       case DECL_EXPR:
         return walk_decl (DECL_EXPR_DECL (t), cg, level + 1);
+
+      case PARM_DECL:
+        t = translate_parm_decl (t, cg);
+        // Fall through.
+      case FUNCTION_DECL:
+      case VAR_DECL:
+      case TYPE_DECL:
+      case FIELD_DECL:
+        if (src != NULL_TREE)
+          cg.add (src, t);
+        return walk_decl (t, cg, level + 1);
+
+      case LABEL_DECL:
+        return;
 
       case MODIFY_EXPR:
         // Operand 0 is the what to set; 1, the new value.
