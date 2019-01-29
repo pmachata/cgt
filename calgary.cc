@@ -197,7 +197,8 @@ namespace
 
   private:
     tree m_dfsrc;
-    std::map <tree, unsigned> m_nodes; // All functions.
+    // caller or callee -> flags
+    std::map <tree, unsigned> m_nodes;
 
     // (caller, callee)
     std::set <std::tuple <tree, tree>> m_edges;
