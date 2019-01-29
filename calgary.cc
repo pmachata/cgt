@@ -620,7 +620,8 @@ namespace
   walk_decl (tree decl, callgraph &cg, unsigned level)
   {
     if (!true)
-      std::cerr << spaces (level) << "decl:" << tcn (decl) << std::endl;
+      std::cerr << spaces (level) << "decl:" << tcn (decl)
+                << " (" << decl_name (decl) << ')' << std::endl;
     assert (DECL_P (decl));
 
     switch (static_cast <int> (TREE_CODE (decl)))
@@ -1014,9 +1015,10 @@ public:
     if (seen.find (type) != seen.end ())
       return;
 
-    std::cerr << "\n- type ------\n"
-              << type_name (type) << std::endl
-              << "-------------\n";
+    if (!true)
+      std::cerr << "\n- type ------\n"
+                << type_name (type) << std::endl
+                << "-------------\n";
 
     seen.insert (type);
   }
