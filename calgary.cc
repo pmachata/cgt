@@ -747,6 +747,7 @@ namespace
       case TYPE_DECL:
       case FIELD_DECL:
       case PARM_DECL:
+      case LABEL_DECL:
         return;
       case FUNCTION_DECL:
         // finish_parse_function() will have already seen body of this function.
