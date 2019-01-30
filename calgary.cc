@@ -701,13 +701,28 @@ namespace
       walk_operand (src, t, i, cg, level + 1);
   }
 
+  std::vector <bool> m_seen_decls;
+  bool
+  should_walk_decl (tree node)
+  {
+    size_t uid = DECL_UID (node);
+    if (uid >= m_seen_decls.size ())
+      m_seen_decls.resize (uid + 1, false);
+    bool seen = m_seen_decls[uid];
+    m_seen_decls[uid] = true;
+    return !seen;
+  }
+
   void
   walk_decl (tree decl, callgraph &cg, unsigned level)
   {
     if (!true)
       std::cerr << spaces (level) << "decl:" << tcn (decl)
                 << " (" << decl_name (decl) << ')' << std::endl;
+
     assert (DECL_P (decl));
+    if (!should_walk_decl (decl))
+      return;
 
     cg.add_context_to (decl);
 
