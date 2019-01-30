@@ -1,0 +1,5 @@
+F ./cases/array_indirect_ref.c
+1794 (2) @var s::cb 1796
+1796 (4) @decl bar
+1798 (5) foo
+---

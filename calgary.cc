@@ -293,7 +293,7 @@ namespace
           return context;
         }
 
-      if (tree context = DECL_CONTEXT (node))
+      if (tree context = tree_context (node))
         if (TREE_CODE (context) != TRANSLATION_UNIT_DECL)
           return context;
 
@@ -616,7 +616,14 @@ namespace
     switch (static_cast <int> (TREE_CODE (dst)))
       {
       case COMPONENT_REF:
+        // Operand 1 is the field (a node of type FIELD_DECL).
         return TREE_OPERAND (dst, 1);
+      case INDIRECT_REF:
+        // One operand, an expression for a pointer.  */
+        return get_destination (TREE_OPERAND (dst, 0));
+      case POINTER_PLUS_EXPR:
+        // The first operand is always a pointer.
+        return get_destination (TREE_OPERAND (dst, 0));
       case VAR_DECL:
       case RESULT_DECL:
         return dst;
