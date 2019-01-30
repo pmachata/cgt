@@ -263,6 +263,16 @@ namespace
     {}
 
     tree
+    tree_context (tree node)
+    {
+      if (TYPE_P (node))
+        return TYPE_CONTEXT (node);
+
+      assert (DECL_P (node));
+      return DECL_CONTEXT (node);
+    }
+
+    tree
     node_context (tree node)
     {
       if (auto it = m_context.find (node);
@@ -380,8 +390,7 @@ namespace
     void
     add_context_to (tree node)
     {
-      if (tree context = TYPE_P (node)
-                            ? TYPE_CONTEXT (node) : DECL_CONTEXT (node))
+      if (tree context = tree_context (node))
         if (TREE_CODE (context) != TRANSLATION_UNIT_DECL)
           add_context (node, context);
     }
