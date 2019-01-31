@@ -620,6 +620,10 @@ namespace
       case ARRAY_REF:
         // Operand 0 is the array; operand 1 is a (single) array index.
         return get_callee (TREE_OPERAND (t, 0));
+
+      case NOP_EXPR:
+        return callee {get_callee (TREE_OPERAND (t, 0)).fn,
+                       get_function_type (TREE_TYPE (t))};
       }
 
     std::cerr << tcn (t) << std::endl;
