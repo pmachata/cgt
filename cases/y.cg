@@ -10,9 +10,9 @@ F ./cases/y.c
 1816 (27) first_arg
 1825 (32) get_get_arg
 1841 (56) call_foo 1795 1805 1845
-1852 (74) get_twain_ops
-1860 (83) call_foo_main 1841 1852
-1867 (96) main 1825 1860
-1845 (56) @var call_foo()::(arg:1) arg 1 1841 1863
-1863 (83) @var call_foo_main()::(arg:0) arg 0 1860 1826
+1851 (74) get_twain_ops
+1859 (83) call_foo_main 1841 1851
+1866 (96) main 1825 1859
+1845 (56) @var call_foo()::(arg:1) arg 1 1841 1862
+1862 (83) @var call_foo_main()::(arg:0) arg 0 1859 1826
 ---

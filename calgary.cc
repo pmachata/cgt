@@ -583,7 +583,23 @@ namespace
     return get_function_type (t) != NULL_TREE;
   }
 
-  tree
+  struct callee
+  {
+    tree const fn;
+    tree const type;
+
+    callee (tree fn)
+      : fn {fn}
+      , type {get_function_type (TREE_TYPE (fn))}
+    {}
+
+    callee (tree fn, tree type)
+      : fn {fn}
+      , type {type}
+    {}
+  };
+
+  callee
   get_callee (tree t)
   {
     switch (static_cast <int> (TREE_CODE (t)))
@@ -591,11 +607,11 @@ namespace
       case PARM_DECL:
       case VAR_DECL:
       case FUNCTION_DECL:
-        return t;
+        return callee {t};
 
       case COMPONENT_REF:
         // Operand 1 is the field (a node of type FIELD_DECL).
-        return TREE_OPERAND (t, 1);
+        return callee {TREE_OPERAND (t, 1)};
 
       case ADDR_EXPR:
         // Operand 0 is the address at which the operand's value resides.
@@ -778,7 +794,8 @@ namespace
         return;
       }
 
-    tree callee = get_callee (fn);
+    callee c = get_callee (fn);
+    tree callee = c.fn;
     assert (callee != NULL_TREE);
     assert (DECL_P (callee));
 
@@ -786,17 +803,14 @@ namespace
             : translate_parm_decl (callee, cg));
     if (src != NULL_TREE)
       // Returns function pointer?
-      if (tree callee_type = TREE_TYPE (callee);
-          is_function_type (TREE_TYPE (callee_type)))
+      if (is_function_type (TREE_TYPE (c.type)))
         cg.add (src, get_result_decl (callee, cg));
 
     // Types of callee arguments.
     std::vector <tree> callee_arg_types;
     {
-      tree type = TREE_TYPE (callee);
-      tree fn_type = get_function_type (type);
-      assert (fn_type != NULL_TREE);
-      for (tree a = TYPE_ARG_TYPES (fn_type); a != NULL_TREE; a = TREE_CHAIN (a))
+      assert (c.type != NULL_TREE);
+      for (tree a = TYPE_ARG_TYPES (c.type); a != NULL_TREE; a = TREE_CHAIN (a))
         callee_arg_types.push_back (TREE_VALUE (a));
     }
 
