@@ -1,0 +1,4 @@
+F ./cases/anon_struct_2vars.c
+1798 (5) @static @var foo()::cb 1793
+1793 (1) @static foo
+---

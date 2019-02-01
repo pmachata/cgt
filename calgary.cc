@@ -275,7 +275,7 @@ namespace
     }
 
     tree
-    surrounding_named_struct (tree type)
+    surrounding_name (tree type)
     {
       assert (TYPE_P (type));
 
@@ -286,6 +286,8 @@ namespace
             return NULL_TREE;
 
           type = it->second;
+          if (TREE_CODE (type) == FUNCTION_DECL)
+            return type;
           if (!TYPE_P (type))
             return NULL_TREE;
         }
@@ -310,7 +312,7 @@ namespace
                 context = jt->second;
               // Maybe there is a named structure surrounding this one? If
               // so, take that as a context.
-              else if (tree surr = surrounding_named_struct (context))
+              else if (tree surr = surrounding_name (context))
                 context = surr;
               else
                 die ("Unknown structure name");
@@ -404,11 +406,11 @@ namespace
     }
 
     void
-    add_context (tree node, tree context)
+    add_context (tree node, tree context, bool override = false)
     {
       if (auto it = m_context.find (node);
           it != m_context.end ())
-        assert (it->second == context);
+        assert (it->second == context || override);
       else
         m_context.insert (std::make_pair (node, context));
     }
@@ -1066,9 +1068,13 @@ namespace
             //
             // Look for those here, where we see both the field with the
             // anonymous type, and the parent type at one place.
+            //
+            // For structures defined inside functions, the above still applies,
+            // but DECL_CONTEXT would reference the function. This context is
+            // more accurate than that one, therefore override it.
             if (tree field_type = find_record_type (TREE_TYPE (field)))
               if (!has_type_name (field_type))
-                cg.add_context (field_type, t);
+                cg.add_context (field_type, t, true);
 
             walk (NULL_TREE, field, cg, level + 1);
           }
