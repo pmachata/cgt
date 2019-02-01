@@ -70,9 +70,9 @@ namespace
   }
 
   bool
-  no_type_name (tree type)
+  has_type_name (tree type)
   {
-    return type_name (type)[0] == '\0';
+    return type_name (type)[0] != '\0';
   }
 
   const char *
@@ -283,7 +283,7 @@ namespace
           tree context = it->second;
 
           // Context of anonymous structures is whatever lends them name.
-          if (TYPE_P (context) && no_type_name (context))
+          if (TYPE_P (context) && !has_type_name (context))
             {
               if (auto jt = m_typedefs.find (context);
                   jt != m_typedefs.end ())
@@ -1058,7 +1058,7 @@ public:
   possible_anon_struct_name (tree type, tree decl)
   {
     if (tree rec = find_record_type (type))
-      if (no_type_name (rec))
+      if (!has_type_name (rec))
         m_cg.add_typename (find_main_type (rec), decl);
   }
 
