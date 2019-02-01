@@ -275,6 +275,26 @@ namespace
     }
 
     tree
+    surrounding_named_struct (tree type)
+    {
+      assert (TYPE_P (type));
+
+      do
+        {
+          auto it = m_context.find (type);
+          if (it == m_context.end ())
+            return NULL_TREE;
+
+          type = it->second;
+          if (!TYPE_P (type))
+            return NULL_TREE;
+        }
+      while (!has_type_name (type));
+
+      return type;
+    }
+
+    tree
     node_context (tree node)
     {
       if (auto it = m_context.find (node);
@@ -288,6 +308,10 @@ namespace
               if (auto jt = m_typedefs.find (context);
                   jt != m_typedefs.end ())
                 context = jt->second;
+              // Maybe there is a named structure surrounding this one? If
+              // so, take that as a context.
+              else if (tree surr = surrounding_named_struct (context))
+                context = surr;
               else
                 die ("Unknown structure name");
             }
@@ -1033,7 +1057,21 @@ namespace
         cg.add_context_to (t);
         for (tree field = TYPE_FIELDS (t); field != NULL_TREE;
              field = TREE_CHAIN (field))
-          walk (NULL_TREE, field, cg, level + 1);
+          {
+            // C structures can be declared inside other structures, but they
+            // still have the file scope, and therefore DECL_CONTEXT of
+            // NULL_TREE. For anonymous structures declared that way, we would
+            // like to see that the context is the structure that the anonymous
+            // structure is declared inside of.
+            //
+            // Look for those here, where we see both the field with the
+            // anonymous type, and the parent type at one place.
+            if (tree field_type = find_record_type (TREE_TYPE (field)))
+              if (!has_type_name (field_type))
+                cg.add_context (field_type, t);
+
+            walk (NULL_TREE, field, cg, level + 1);
+          }
         break;
       }
   }

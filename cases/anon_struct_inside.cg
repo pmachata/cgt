@@ -1,0 +1,4 @@
+F ./cases/anon_struct_inside.c
+1796 (4) @var foo::cb
+1800 (9) fn 1796
+---
