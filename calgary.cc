@@ -26,6 +26,8 @@ using namespace std::string_literals;
 
 namespace
 {
+  constexpr bool dump_walk = false;
+
   __attribute__ ((unused)) const char *
   tcn (tree t)
   {
@@ -752,7 +754,7 @@ namespace
   void
   walk_decl (tree decl, callgraph &cg, unsigned level)
   {
-    if (!true)
+    if (dump_walk)
       std::cerr << spaces (level) << "decl:" << tcn (decl)
                 << " (" << decl_name (decl) << ')' << std::endl;
 
@@ -786,7 +788,7 @@ namespace
   walk_call_expr (tree src, tree call_expr, tree fn, callgraph &cg,
                   unsigned level)
   {
-    if (!true)
+    if (dump_walk)
       std::cerr << spaces (level) << "call:" << tcn (fn) << std::endl;
     if (TREE_CODE (fn) == COND_EXPR)
       {
@@ -845,7 +847,7 @@ namespace
   void
   walk (tree src, tree t, callgraph &cg, unsigned level)
   {
-    if (!true)
+    if (dump_walk)
       std::cerr << spaces (level) << tcn (t) << std::endl;
 
     if (CONSTANT_CLASS_P (t))
@@ -1021,7 +1023,7 @@ namespace
   void
   walk_type (tree t, callgraph &cg, unsigned level = 0)
   {
-    if (!true)
+    if (dump_walk)
       std::cerr << spaces (level) << "type:" << tcn (t) << std::endl;
 
     switch (static_cast <int> (TREE_CODE (t)))
