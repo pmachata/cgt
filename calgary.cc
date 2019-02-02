@@ -660,6 +660,21 @@ namespace
   }
 
   tree
+  translate_parm_decl (tree decl, callgraph &cg)
+  {
+    assert (TREE_CODE (decl) == PARM_DECL);
+
+    tree ctxfn = DECL_CONTEXT (decl);
+    unsigned j = 0;
+    for (tree a = DECL_ARGUMENTS (ctxfn); a != NULL_TREE;
+         a = TREE_CHAIN (a), j++)
+      if (a == decl)
+        return cg.decl_fab.get (j, TREE_TYPE (decl), ctxfn);
+
+    die ("translate_parm_decl: Can't determine parameter number");
+  }
+
+  tree
   get_destination (tree dst)
   {
     switch (static_cast <int> (TREE_CODE (dst)))
@@ -680,21 +695,6 @@ namespace
 
     std::cerr << tcn (dst) << std::endl;
     die ("get_destination: unhandled code");
-  }
-
-  tree
-  translate_parm_decl (tree decl, callgraph &cg)
-  {
-    assert (TREE_CODE (decl) == PARM_DECL);
-
-    tree ctxfn = DECL_CONTEXT (decl);
-    unsigned j = 0;
-    for (tree a = DECL_ARGUMENTS (ctxfn); a != NULL_TREE;
-         a = TREE_CHAIN (a), j++)
-      if (a == decl)
-        return cg.decl_fab.get (j, TREE_TYPE (decl), ctxfn);
-
-    die ("translate_parm_decl: Can't determine parameter number");
   }
 
   tree
