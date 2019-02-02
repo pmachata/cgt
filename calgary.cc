@@ -650,6 +650,7 @@ namespace
         return get_callee (TREE_OPERAND (t, 0));
 
       case NOP_EXPR:
+      case CONVERT_EXPR:
         return callee {get_callee (TREE_OPERAND (t, 0)).fn,
                        get_function_type (TREE_TYPE (t))};
       }

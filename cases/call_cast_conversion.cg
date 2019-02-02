@@ -1,0 +1,5 @@
+F ./cases/call_cast_conversion.c
+1793 (1) @decl foo
+1796 (3) bar 1794
+1794 (2) @var ptr 1793
+---
