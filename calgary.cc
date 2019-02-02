@@ -675,7 +675,7 @@ namespace
   }
 
   tree
-  get_destination (tree dst)
+  get_destination (tree dst, callgraph &cg)
   {
     switch (static_cast <int> (TREE_CODE (dst)))
       {
@@ -684,10 +684,14 @@ namespace
         return TREE_OPERAND (dst, 1);
       case INDIRECT_REF:
         // One operand, an expression for a pointer.  */
-        return get_destination (TREE_OPERAND (dst, 0));
+        return get_destination (TREE_OPERAND (dst, 0), cg);
       case POINTER_PLUS_EXPR:
         // The first operand is always a pointer.
-        return get_destination (TREE_OPERAND (dst, 0));
+        return get_destination (TREE_OPERAND (dst, 0), cg);
+
+      case PARM_DECL:
+        dst = translate_parm_decl (dst, cg);
+        // Fall through.
       case VAR_DECL:
       case RESULT_DECL:
         return dst;
@@ -911,7 +915,7 @@ namespace
         // the only way to add an edge from two sources.
         if (tree dst = TREE_OPERAND (t, 0);
             is_function_type (TREE_TYPE (dst)))
-          if (tree dst2 = get_destination (dst))
+          if (tree dst2 = get_destination (dst, cg))
             {
               if (TREE_CODE (dst2) == RESULT_DECL)
                 cg.decl_fab.track_result_decl (DECL_CONTEXT (dst2), dst2);

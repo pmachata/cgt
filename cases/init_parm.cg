@@ -1,0 +1,5 @@
+F ./cases/init_parm.c
+1793 (1) @decl bar
+1796 (2) @static foo 1798
+1798 (2) @static @var foo()::(arg:0) arg 0 1796 1793
+---
