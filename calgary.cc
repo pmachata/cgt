@@ -184,7 +184,7 @@ namespace
     }
 
     std::tuple <tree, unsigned>
-    find_context (tree decl)
+    find_fab (tree decl)
     {
       if (auto it = m_fab_ctx.find (decl);
           it != m_fab_ctx.end ())
@@ -464,7 +464,7 @@ namespace
       if (TREE_CODE (src) == PARM_DECL
           || TREE_CODE (src) == RESULT_DECL)
         {
-          auto ctx = decl_fab.find_context (src);
+          auto ctx = decl_fab.find_fab (src);
           tree fn = std::get <0> (ctx);
           assert (fn != NULL_TREE);
 
