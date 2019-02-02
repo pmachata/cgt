@@ -1214,6 +1214,8 @@ public:
   {
     assert (TYPE_P (type));
 
+    if (!COMPLETE_TYPE_P (type))
+      return;
     if (!m_seen_types.insert (type).second)
       return;
 
