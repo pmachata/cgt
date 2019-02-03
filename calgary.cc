@@ -645,6 +645,10 @@ namespace
         // Operand 0 is the address at which the operand's value resides.
         return get_callee (TREE_OPERAND (t, 0));
 
+      case POINTER_PLUS_EXPR:
+        // The first operand is always a pointer.
+        return get_callee (TREE_OPERAND (t, 0));
+
       case ARRAY_REF:
         // Operand 0 is the array; operand 1 is a (single) array index.
         return get_callee (TREE_OPERAND (t, 0));
