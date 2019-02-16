@@ -1,0 +1,7 @@
+F ./cases/init_compound_expr.c
+1803 (8) @static @var foo()::.u.1804::cb 1793
+1810 (16) @static @var foo()::.u.1811::cb 1795
+1793 (1) @decl bar
+1795 (2) @decl baz
+1797 (4) @static foo
+---

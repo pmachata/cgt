@@ -229,8 +229,13 @@ namespace
       if (TREE_CODE (decl) != VAR_DECL)
         return false;
 
+      // Function-local variables are those that have a context of function
+      // declaration, or anonymous variables (that don't have context). The
+      // latter ones are generated for statement expressions, where they are
+      // assigned result of said expression (i.e. the last statement).
       tree ctx = DECL_CONTEXT (decl);
-      return ctx != NULL_TREE && TREE_CODE (ctx) == FUNCTION_DECL;
+      return ((ctx != NULL_TREE && TREE_CODE (ctx) == FUNCTION_DECL)
+              || decl_name (decl) == ""s);
     }
 
     std::string
