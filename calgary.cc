@@ -228,30 +228,38 @@ namespace
     {
       assert (DECL_P (callee));
 
-      std::string ret;
+      std::vector <tree> ctxs;
       for (tree context = node_context (callee); context != NULL_TREE;
            context = node_context (context))
+        ctxs.push_back (context);
+
+      std::stringstream ss;
+      for (auto it = ctxs.rbegin (); it != ctxs.rend (); ++it)
         {
+          tree context = *it;
           std::string prefix = TYPE_P (context)
             ? type_name (context) : decl_name (context);
           switch (static_cast <int> (TREE_CODE (context)))
             {
             case FUNCTION_DECL:
-              prefix += "()";
+              ss << prefix << "()";
               break;
             case VAR_DECL:
-              prefix = "." + prefix;
+              ss << "." << prefix;
+              break;
+            default:
+              ss << prefix;
               break;
             }
-          ret = prefix + "::" + ret;
+          ss << "::";
         }
 
       if (TREE_CODE (callee) == RESULT_DECL)
-        ret += "(ret)";
+        ss << "(ret)";
       else
-        ret += decl_name (callee);
+        ss << decl_name (callee);
 
-      return ret;
+      return ss.str ();
     }
 
     explicit callgraph (class decl_fab &fab,
