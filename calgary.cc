@@ -223,6 +223,16 @@ namespace
     std::map <tree, tree> &m_context;
 
   public:
+    static bool
+    is_local_var (tree decl)
+    {
+      if (TREE_CODE (decl) != VAR_DECL)
+        return false;
+
+      tree ctx = DECL_CONTEXT (decl);
+      return ctx != NULL_TREE && TREE_CODE (ctx) == FUNCTION_DECL;
+    }
+
     std::string
     dump_callee (tree callee)
     {
@@ -533,25 +543,21 @@ namespace
         }
     }
 
+    // Get rid of the nodes representing function-local variables and
+    // propagate the information to the periphery of the function.
     void
     propagate ()
     {
-      // Get rid of the nodes representing function-local variables and
-      // propagate the information to the periphery of the function.
       std::map <tree, std::set <tree>> internal;
       for (auto it = m_edges.begin (); it != m_edges.end (); )
         {
           tree src = std::get <0> (*it);
           tree dst = std::get <1> (*it);
-          if (TREE_CODE (src) == VAR_DECL)
+          if (is_local_var (src))
             {
-              if (tree ctx = DECL_CONTEXT (src);
-                  ctx != NULL_TREE && TREE_CODE (ctx) == FUNCTION_DECL)
-                {
-                  internal[src].insert (dst);
-                  it = m_edges.erase (it);
-                  continue;
-                }
+              internal[src].insert (dst);
+              it = m_edges.erase (it);
+              continue;
             }
 
           ++it;
