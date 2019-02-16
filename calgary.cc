@@ -935,7 +935,7 @@ namespace
 
       case MODIFY_EXPR:
         // Operand 0 is what to set; 1, the new value.
-        walk (src, TREE_OPERAND (t, 1), cg, level + 1);
+        walk (src, TREE_OPERAND (t, 1), cg, level + 2);
         // If operand 0 is interesting, rerun with a new src. That's currently
         // the only way to add an edge from two sources.
         if (tree dst = TREE_OPERAND (t, 0);
