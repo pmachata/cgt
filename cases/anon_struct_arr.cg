@@ -1,6 +1,6 @@
 F ./cases/anon_struct_arr.c
 1800 (13) @static @var .s_t::cb 1793 1796
-1810 (28) @var baz()::.meh::cb 1793 1796
+1810 (28) @var baz()::.meh.1811::cb 1793 1796
 1793 (1) ab
 1796 (6) cb
 1803 (19) bar 1800

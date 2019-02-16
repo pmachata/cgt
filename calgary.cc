@@ -256,6 +256,8 @@ namespace
               break;
             case VAR_DECL:
               ss << "." << prefix;
+              if (is_local_var (context))
+                ss << "." << DECL_UID (context);
               break;
             default:
               ss << prefix;
