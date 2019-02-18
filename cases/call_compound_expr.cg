@@ -1,0 +1,4 @@
+F ./cases/call_compound_expr.c
+1793 (1) @decl bar
+1795 (3) @static foo 1793
+---

@@ -705,6 +705,10 @@ namespace
       case CONVERT_EXPR:
         return callee {get_callee (TREE_OPERAND (t, 0)).fn,
                        get_function_type (TREE_TYPE (t))};
+
+      case TARGET_EXPR:
+        // operand 0 is the target of an initialization
+        return get_callee (TREE_OPERAND (t, 0));
       }
 
     std::cerr << tcn (t) << std::endl;
@@ -873,14 +877,20 @@ namespace
   {
     if (dump_walk)
       std::cerr << spaces (level) << "call:" << tcn (fn) << std::endl;
-    if (TREE_CODE (fn) == COND_EXPR)
+
+    switch (static_cast <int> (TREE_CODE (fn)))
       {
+      case COND_EXPR:
         // A condition doesn't influence what the callee will be, so walk it
         // normally. Dispatch to walk_call_expr for the then and else branches.
         walk_operand (src, fn, 0, cg, level + 1);
         walk_call_expr_operand (src, call_expr, fn, 1, cg, level + 1);
         walk_call_expr_operand (src, call_expr, fn, 2, cg, level + 1, true);
         return;
+
+      case TARGET_EXPR:
+        walk (src, fn, cg, level + 1);
+        break;
       }
 
     callee c = get_callee (fn);
