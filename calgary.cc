@@ -286,22 +286,48 @@ namespace
       return NULL_TREE;
     }
 
-  public:
-    static bool
-    is_local_var (tree decl)
+    bool
+    is_local_var (tree node)
     {
-      if (TREE_CODE (decl) != VAR_DECL)
-        return false;
+      switch (static_cast <int> (TREE_CODE (node)))
+        {
+        case FUNCTION_DECL:
+        case PARM_DECL:
+        case RESULT_DECL:
+          return false;
 
-      // Function-local variables are those that have a context of function
-      // declaration, or anonymous variables (that don't have context). The
-      // latter ones are generated for statement expressions, where they are
-      // assigned result of said expression (i.e. the last statement).
-      tree ctx = DECL_CONTEXT (decl);
-      return ((ctx != NULL_TREE && TREE_CODE (ctx) == FUNCTION_DECL)
-              || decl_name (decl) == ""s);
+        case VAR_DECL:
+          // Function-local variables are those that have a context of function
+          // declaration, or anonymous variables (that don't have context). The
+          // latter ones are generated for statement expressions, where they are
+          // assigned result of said expression (i.e. the last statement).
+          {
+            tree ctx = DECL_CONTEXT (node);
+            return ((ctx != NULL_TREE && TREE_CODE (ctx) == FUNCTION_DECL)
+                    || decl_name (node) == ""s);
+          }
+
+        case FIELD_DECL:
+          {
+            tree ctx = node_context (node);
+            assert (ctx != NULL_TREE);
+            return is_local_var (ctx);
+          }
+
+        case RECORD_TYPE:
+        case UNION_TYPE:
+        case TYPE_DECL:
+          if (tree ctx = tree_context (node))
+            return is_local_var (ctx);
+          else
+            return false;
+        }
+
+      std::cerr << "is_local_var: " << tcn (node) << std::endl;
+      die ("is_local_var: unhandled code");
     }
 
+  public:
     std::string
     dump_callee (tree callee)
     {
@@ -325,8 +351,6 @@ namespace
               break;
             case VAR_DECL:
               ss << "." << prefix;
-              if (is_local_var (context))
-                ss << "." << DECL_UID (context);
               break;
             default:
               ss << prefix;

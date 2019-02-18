@@ -3,10 +3,9 @@ F ./cases/static_field_decl.c
 1804 (11) @var goo()::s::cb 1800
 1808 (17) @static @var .f::cb 1793
 1812 (22) @var .g::cb 1800
-1822 (31) @var outer()::inner()::.f.1823::cb 1815
-1826 (35) @var outer()::inner()::.g.1827::cb 1815
 1793 (1) @static foo
 1800 (8) goo
 1815 (25) outer
-1818 (27) outer()::inner
+1818 (27) outer()::inner 1815
+1825 (36) outer()::other 1815
 ---

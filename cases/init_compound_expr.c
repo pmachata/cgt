@@ -10,7 +10,11 @@ static void foo (void)
             u.cb = bar;
             u.cb;
         });
+    a();
+}
 
+static void fooo (void)
+{
     void (*b)(void) = ({
             struct {
                 void (*cb)(void);
@@ -18,4 +22,5 @@ static void foo (void)
             u.cb = baz;
             u.cb;
         });
+    b();
 }

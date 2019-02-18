@@ -30,9 +30,15 @@ void outer(void)
         {
             void (*cb)(void);
         } f = {outer};
+        f.cb();
+    }
+
+    void other(void)
+    {
         struct
         {
             void (*cb)(void);
         } g = {outer};
+        g.cb();
     }
 }
