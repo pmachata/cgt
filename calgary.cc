@@ -595,24 +595,26 @@ namespace
         }
 
       bool changed;
-      do {
-        changed = false;
-        for (auto it = m_edges.begin (); it != m_edges.end (); )
-          {
-            tree src = std::get <0> (*it);
-            tree dst = std::get <1> (*it);
-            auto jt = internal.find (dst);
-            if (jt != internal.end ())
-              {
-                it = m_edges.erase (it);
-                for (auto dst2: jt->second)
-                  m_edges.insert ({src, dst2});
-                changed = true;
-              }
-            else
-              ++it;
-          }
-      } while (changed);
+      do
+        {
+          changed = false;
+          for (auto it = m_edges.begin (); it != m_edges.end (); )
+            {
+              tree src = std::get <0> (*it);
+              tree dst = std::get <1> (*it);
+              auto jt = internal.find (dst);
+              if (jt != internal.end ())
+                {
+                  it = m_edges.erase (it);
+                  for (auto dst2: jt->second)
+                    m_edges.insert ({src, dst2});
+                  changed = true;
+                }
+              else
+                ++it;
+            }
+        }
+      while (changed);
     }
 
     void
