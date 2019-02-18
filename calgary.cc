@@ -27,6 +27,7 @@ using namespace std::string_literals;
 namespace
 {
   constexpr bool dump_walk = false;
+  constexpr bool dump_add = false;
 
   __attribute__ ((unused)) const char *
   tcn (tree t)
@@ -441,7 +442,7 @@ namespace
 
       m_edges.insert ({src, dst});
 
-      if (!true)
+      if (dump_add)
         std::cerr << dump_callee (src) << " -> "
                   << dump_callee (dst) << std::endl;
     }
