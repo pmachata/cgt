@@ -1011,6 +1011,7 @@ namespace
         return;
 
       case TARGET_EXPR:
+        // operand 0 is the target of an initialization,
         // operand 1 is the initializer for the target, which may be void
         // operand 2 is the cleanup for this node, if any.
         // operand 3 is the saved initializer after this node has been expanded
