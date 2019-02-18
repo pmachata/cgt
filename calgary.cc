@@ -962,7 +962,7 @@ namespace
 
       case MODIFY_EXPR:
         // Operand 0 is what to set; 1, the new value.
-        walk (src, TREE_OPERAND (t, 1), cg, level + 2);
+        walk (src, TREE_OPERAND (t, 1), cg, level + 1);
         // If operand 0 is interesting, rerun with a new src. That's currently
         // the only way to add an edge from two sources.
         if (tree dst = TREE_OPERAND (t, 0);
@@ -971,7 +971,10 @@ namespace
             {
               if (TREE_CODE (dst2) == RESULT_DECL)
                 cg.decl_fab.track_result_decl (DECL_CONTEXT (dst2), dst2);
-              walk (dst2, TREE_OPERAND (t, 1), cg, level + 1);
+              if (dump_walk)
+                std::cerr << spaces (level + 1) << "rerun for ("
+                          << decl_name (dst2) << ")" << std::endl;
+              walk (dst2, TREE_OPERAND (t, 1), cg, level + 2);
             }
         return;
 
