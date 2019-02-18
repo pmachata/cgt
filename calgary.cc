@@ -69,6 +69,16 @@ namespace
     return IDENTIFIER_POINTER (tn);
   }
 
+  tree
+  tree_context (tree node)
+  {
+    if (TYPE_P (node))
+      return TYPE_CONTEXT (node);
+
+    assert (DECL_P (node));
+    return DECL_CONTEXT (node);
+  }
+
   bool
   has_type_name (tree type)
   {
@@ -222,6 +232,60 @@ namespace
     // disambiguator.
     std::map <tree, tree> &m_context;
 
+    tree
+    surrounding_name (tree type)
+    {
+      assert (TYPE_P (type));
+
+      do
+        {
+          auto it = m_context.find (type);
+          if (it == m_context.end ())
+            return NULL_TREE;
+
+          type = it->second;
+          if (TREE_CODE (type) == FUNCTION_DECL)
+            return type;
+          if (!TYPE_P (type))
+            return NULL_TREE;
+        }
+      while (!has_type_name (type));
+
+      return type;
+    }
+
+    tree
+    node_context (tree node)
+    {
+      if (auto it = m_context.find (node);
+          it != m_context.end ())
+        {
+          tree context = it->second;
+
+          // Context of anonymous structures is whatever lends them name.
+          if (TYPE_P (context) && !has_type_name (context))
+            {
+              if (auto jt = m_typedefs.find (context);
+                  jt != m_typedefs.end ())
+                context = jt->second;
+              // Maybe there is a named structure surrounding this one? If
+              // so, take that as a context.
+              else if (tree surr = surrounding_name (context))
+                context = surr;
+              else
+                die ("Unknown structure name");
+            }
+
+          return context;
+        }
+
+      if (tree context = tree_context (node))
+        if (TREE_CODE (context) != TRANSLATION_UNIT_DECL)
+          return context;
+
+      return NULL_TREE;
+    }
+
   public:
     static bool
     is_local_var (tree decl)
@@ -288,70 +352,6 @@ namespace
       , m_typedefs {typedefs}
       , m_context {context}
     {}
-
-    tree
-    tree_context (tree node)
-    {
-      if (TYPE_P (node))
-        return TYPE_CONTEXT (node);
-
-      assert (DECL_P (node));
-      return DECL_CONTEXT (node);
-    }
-
-    tree
-    surrounding_name (tree type)
-    {
-      assert (TYPE_P (type));
-
-      do
-        {
-          auto it = m_context.find (type);
-          if (it == m_context.end ())
-            return NULL_TREE;
-
-          type = it->second;
-          if (TREE_CODE (type) == FUNCTION_DECL)
-            return type;
-          if (!TYPE_P (type))
-            return NULL_TREE;
-        }
-      while (!has_type_name (type));
-
-      return type;
-    }
-
-    tree
-    node_context (tree node)
-    {
-      if (auto it = m_context.find (node);
-          it != m_context.end ())
-        {
-          tree context = it->second;
-
-          // Context of anonymous structures is whatever lends them name.
-          if (TYPE_P (context) && !has_type_name (context))
-            {
-              if (auto jt = m_typedefs.find (context);
-                  jt != m_typedefs.end ())
-                context = jt->second;
-              // Maybe there is a named structure surrounding this one? If
-              // so, take that as a context.
-              else if (tree surr = surrounding_name (context))
-                context = surr;
-              else
-                die ("Unknown structure name");
-            }
-
-          return context;
-        }
-
-      if (tree context = tree_context (node))
-        if (TREE_CODE (context) != TRANSLATION_UNIT_DECL)
-          return context;
-
-      return NULL_TREE;
-   }
 
     tree
     get_toplev_context (tree node)
