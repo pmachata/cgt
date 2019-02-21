@@ -1,0 +1,8 @@
+F ./cases/call_indirect_ref.c
+1794 (1) foo 1796
+1796 (1) @var foo()::(arg:0) arg 0 1794 1807
+1802 (4) @var bar()::(arg:1) arg 1 1800 1807
+1807 (7) @var baz()::(arg:0) arg 0 1805
+1800 (4) bar 1802
+1805 (7) baz 1794 1800
+---

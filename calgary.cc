@@ -689,6 +689,10 @@ namespace
         // Operand 1 is the field (a node of type FIELD_DECL).
         return callee {TREE_OPERAND (t, 1)};
 
+      case INDIRECT_REF:
+        // One operand, an expression for a pointer.  */
+        return get_callee (TREE_OPERAND (t, 0));
+
       case ADDR_EXPR:
         // Operand 0 is the address at which the operand's value resides.
         return get_callee (TREE_OPERAND (t, 0));
