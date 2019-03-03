@@ -353,6 +353,10 @@ namespace
             case VAR_DECL:
               ss << "." << prefix;
               break;
+            case RESULT_DECL:
+              assert (prefix == "");
+              ss << "(ret)";
+              break;
             default:
               ss << prefix;
               break;
@@ -775,6 +779,7 @@ namespace
       case PARM_DECL:
       case VAR_DECL:
       case FIELD_DECL:
+      case RESULT_DECL:
         return cg.decl_fab.get_result_decl (callee);
       }
 
@@ -800,8 +805,9 @@ namespace
   }
 
   void walk (tree src, tree t, callgraph &cg, unsigned level = 0);
-  void walk_call_expr (tree src, tree call_expr, tree fn, callgraph &cg,
-                       unsigned level);
+
+  void walk_call_expr (tree src, tree call_expr, tree fn, unsigned call_nesting,
+                       callgraph &cg, unsigned level);
 
   void
   walk_operand (tree src, tree t, unsigned i, callgraph &cg, unsigned level,
@@ -815,11 +821,11 @@ namespace
 
   void
   walk_call_expr_operand (tree src, tree call_expr, tree fn, unsigned i,
-                          callgraph &cg,
+                          unsigned call_nesting, callgraph &cg,
                           unsigned level, bool may_be_null = false)
   {
     if (tree ti = TREE_OPERAND (fn, i))
-      walk_call_expr (src, call_expr, ti, cg, level + 1);
+      walk_call_expr (src, call_expr, ti, call_nesting, cg, level + 1);
     else
       assert (may_be_null);
   }
@@ -877,11 +883,16 @@ namespace
   }
 
   void
-  walk_call_expr (tree src, tree call_expr, tree fn, callgraph &cg,
-                  unsigned level)
+  walk_call_expr (tree src, tree call_expr, tree fn, unsigned call_nesting,
+                  callgraph &cg, unsigned level)
   {
     if (dump_walk)
-      std::cerr << spaces (level) << "call:" << tcn (fn) << std::endl;
+      {
+        std::cerr << spaces (level) << "call:" << tcn (fn);
+        if (call_nesting > 0)
+          std::cerr << "[nesting " << call_nesting << "]";
+        std::cerr << std::endl;
+      }
 
     switch (static_cast <int> (TREE_CODE (fn)))
       {
@@ -889,8 +900,15 @@ namespace
         // A condition doesn't influence what the callee will be, so walk it
         // normally. Dispatch to walk_call_expr for the then and else branches.
         walk_operand (src, fn, 0, cg, level + 1);
-        walk_call_expr_operand (src, call_expr, fn, 1, cg, level + 1);
-        walk_call_expr_operand (src, call_expr, fn, 2, cg, level + 1, true);
+        walk_call_expr_operand (src, call_expr, fn, 1, call_nesting, cg,
+                                level + 1);
+        walk_call_expr_operand (src, call_expr, fn, 2, call_nesting, cg,
+                                level + 1, true);
+        return;
+
+      case CALL_EXPR:
+        if (tree fn2 = CALL_EXPR_FN (fn))
+          walk_call_expr (src, call_expr, fn2, call_nesting + 1, cg, level + 1);
         return;
 
       case TARGET_EXPR:
@@ -903,12 +921,29 @@ namespace
     assert (callee != NULL_TREE);
     assert (DECL_P (callee));
 
-    cg.add (TREE_CODE (callee) != PARM_DECL ? callee
-            : translate_parm_decl (callee, cg));
-    if (src != NULL_TREE)
-      // Returns function pointer?
-      if (is_function_type (TREE_TYPE (c.type)))
-        cg.add (src, get_result_decl (callee, cg));
+    tree translated_callee = TREE_CODE (callee) != PARM_DECL
+                                ? callee : translate_parm_decl (callee, cg);
+    cg.add (translated_callee);
+
+    {
+      // If this is a nested call (e.g. fn()()), this is the leaf of the nesting
+      // where we get to see the actual function to be called ("fn"). Add edges
+      // for the higher nesting levels.
+      tree resdecl = translated_callee;
+      for (unsigned i = 0; i < call_nesting; i++)
+        {
+          resdecl = get_result_decl (resdecl, cg);
+          cg.add (resdecl);
+        }
+
+      // Inside assignment expressions, add an edge to the outermost call
+      // expression of the nesting. (Or if there is no nesting, just the callee
+      // itself, if it is a function type.)
+      if (src != NULL_TREE)
+        if (call_nesting > 0
+            || is_function_type (TREE_TYPE (c.type)))
+          cg.add (src, get_result_decl (resdecl, cg));
+    }
 
     // Types of callee arguments.
     std::vector <tree> callee_arg_types;
@@ -955,7 +990,7 @@ namespace
       {
       case CALL_EXPR:
         if (tree fn = CALL_EXPR_FN (t))
-          walk_call_expr (src, t, fn, cg, level + 1);
+          walk_call_expr (src, t, fn, 0, cg, level + 1);
         return;
 
       case DECL_EXPR:
