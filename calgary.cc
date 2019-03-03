@@ -743,7 +743,7 @@ namespace
         // Operand 1 is the field (a node of type FIELD_DECL).
         return TREE_OPERAND (dst, 1);
       case INDIRECT_REF:
-        // One operand, an expression for a pointer.  */
+        // One operand, an expression for a pointer.
         return get_destination (TREE_OPERAND (dst, 0), cg);
       case POINTER_PLUS_EXPR:
         // The first operand is always a pointer.
