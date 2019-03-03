@@ -778,6 +778,7 @@ namespace
         return cg.decl_fab.get_result_decl (callee);
       }
 
+    std::cerr << tcn (callee) << std::endl;
     die ("get_result_decl: Unhandled code");
   }
 
