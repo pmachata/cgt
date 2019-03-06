@@ -508,6 +508,51 @@ cgfile::propagate_varlinks()
               for (auto const &callee: symbol->get_callees ())
                 child->add_callee (callee);
             }
+
+  // Resolve deep call chains: fn()()(). A shallow chain like fn()() is handled
+  // trivially: it is simply a call to a retval node, and retval nodes are
+  // handled as part of a normal operating procedure.
+  //
+  // For deep call chains, we get an edge like outer_fn -> fn()::(ret)::(ret).
+  // That means that outer_fn calls the result of a call to a result of fn.
+  // Calgary may not have any information about fn()::(ret), and therefore it
+  // does not attempt to resolve the edges from fn()::(ret)::(ret), punting to
+  // linker. Resolve these calls now.
+  //
+  // Find @var nodes that are retval of a node that itself has a parent (either
+  // retval or argument).
+  // Find its parent
+  // For each callee:
+  //   Find a retval node of this callee
+  //   Copy its edges from the retval node to the original node
+  // Keep doing that until no more edges can be added.
+  {
+    std::unordered_map <ProgramSymbol const *, ProgramSymbol const *> ret_map;
+    for (auto const &symbol: m_all_program_symbols)
+      if (ProgramSymbol *parent = symbol->get_parent ();
+          parent != nullptr && symbol->get_arg_n () == -1u)
+        ret_map[parent] = symbol.get ();
+
+    bool changed;
+    do
+      {
+        changed = false;
+        for (auto const &symbol: m_all_program_symbols)
+          {
+            size_t sz = symbol->get_callees ().size ();
+            if (ProgramSymbol *parent = symbol->get_parent ();
+                parent != nullptr && symbol->get_arg_n () == -1u
+                && parent->get_parent () != nullptr)
+              for (auto const &callee: parent->get_callees ())
+                if (auto it = ret_map.find (callee); it != ret_map.end ())
+                  for (auto const &target: it->second->get_callees ())
+                    symbol->add_callee (target);
+            if (symbol->get_callees ().size () > sz)
+              changed = true;
+          }
+      }
+    while (changed);
+  }
 }
 
 void
