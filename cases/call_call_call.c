@@ -45,3 +45,7 @@ void foo4(void)
 {
     ss.cb = fn3()();
 }
+
+int main(void) {
+    foo3(0, fn2);
+}
