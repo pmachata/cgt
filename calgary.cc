@@ -1033,8 +1033,6 @@ namespace
             is_function_type (TREE_TYPE (dst)))
           if (tree dst2 = get_destination (dst, cg))
             {
-              if (TREE_CODE (dst2) == RESULT_DECL)
-                cg.decl_fab.track_result_decl (DECL_CONTEXT (dst2), dst2);
               if (dump_walk)
                 std::cerr << spaces (level + 1) << "rerun for ("
                           << decl_name (dst2) << ")" << std::endl;
@@ -1262,6 +1260,10 @@ public:
     if (tree body = DECL_SAVED_TREE (fn))
       {
         callgraph cg {m_fab, m_typedefs, m_context, fn};
+
+        tree resdecl = DECL_RESULT (fn);
+        m_fab.track_result_decl (DECL_CONTEXT (resdecl), resdecl);
+
         walk (NULL_TREE, body, cg);
         cg.propagate ();
         m_cg.merge (std::move (cg));
