@@ -28,6 +28,7 @@ namespace
 {
   constexpr bool dump_walk = false;
   constexpr bool dump_add = false;
+  constexpr bool dump_fab = false;
 
   __attribute__ ((unused)) const char *
   tcn (tree t)
@@ -160,6 +161,11 @@ namespace
           DECL_CONTEXT (decl) = callee;
 
           auto ctx = std::make_tuple (callee, i);
+          if (dump_fab)
+            std::cerr << "fab ctx<->decl: " << tcn (callee) << "," << (int)i
+                      << " -- " << tcn (decl) << "(" << decl_name (decl) << ")"
+                      << std::endl;
+
           it = m_fab_decls.insert (std::make_pair (ctx, decl)).first;
           m_fab_ctx.insert (std::make_pair (decl, ctx));
         }
@@ -171,6 +177,10 @@ namespace
     {
       assert (callee != NULL_TREE);
       assert (resdecl != NULL_TREE);
+      if (dump_fab)
+            std::cerr << "fab ctx<--decl: " << tcn (callee) << "," << -1
+                      << " -- " << tcn (resdecl)
+                      << "(" << decl_name (resdecl) << ")" << std::endl;
       m_fab_ctx.insert (std::make_pair (resdecl,
                                         std::make_tuple (callee, -1u)));
     }
@@ -188,6 +198,10 @@ namespace
           DECL_CONTEXT (resdecl) = callee;
           DECL_ARTIFICIAL (resdecl) = 1;
           DECL_IGNORED_P (resdecl) = 1;
+          if (dump_fab)
+            std::cerr << "fab ctx-->result: " << tcn (callee)
+                      << " -- " << tcn (resdecl)
+                      << "(" << decl_name (resdecl) << ")" << std::endl;
           it = m_fab_results.insert (std::make_pair (callee, resdecl)).first;
           track_result_decl (callee, resdecl);
         }
