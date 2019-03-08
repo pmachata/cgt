@@ -1,7 +1,11 @@
 F ./cases/call_cond_expr.c
+1820 (22) @var fn2()::(ret) rv 1815
 1793 (1) @static call_cond_expr_callee_1
 1796 (2) @static call_cond_expr_callee_2
 1799 (3) @static call_cond_expr_dispatch
 1803 (8) @static call_cond_expr_1 1793 1796
 1807 (13) @static call_cond_expr_2 1793 1796 1799
+1813 (21) @decl fn1
+1815 (22) @decl fn2
+1817 (24) foo 1820 1813 1815
 ---

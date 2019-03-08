@@ -677,66 +677,6 @@ namespace
     return get_function_type (t) != NULL_TREE;
   }
 
-  struct callee
-  {
-    tree const fn;
-    tree const type;
-
-    callee (tree fn)
-      : fn {fn}
-      , type {get_function_type (TREE_TYPE (fn))}
-    {}
-
-    callee (tree fn, tree type)
-      : fn {fn}
-      , type {type}
-    {}
-  };
-
-  callee
-  get_callee (tree t)
-  {
-    switch (static_cast <int> (TREE_CODE (t)))
-      {
-      case PARM_DECL:
-      case VAR_DECL:
-      case FUNCTION_DECL:
-        return callee {t};
-
-      case COMPONENT_REF:
-        // Operand 1 is the field (a node of type FIELD_DECL).
-        return callee {TREE_OPERAND (t, 1)};
-
-      case INDIRECT_REF:
-        // One operand, an expression for a pointer.  */
-        return get_callee (TREE_OPERAND (t, 0));
-
-      case ADDR_EXPR:
-        // Operand 0 is the address at which the operand's value resides.
-        return get_callee (TREE_OPERAND (t, 0));
-
-      case POINTER_PLUS_EXPR:
-        // The first operand is always a pointer.
-        return get_callee (TREE_OPERAND (t, 0));
-
-      case ARRAY_REF:
-        // Operand 0 is the array; operand 1 is a (single) array index.
-        return get_callee (TREE_OPERAND (t, 0));
-
-      case NOP_EXPR:
-      case CONVERT_EXPR:
-        return callee {get_callee (TREE_OPERAND (t, 0)).fn,
-                       get_function_type (TREE_TYPE (t))};
-
-      case TARGET_EXPR:
-        // operand 0 is the target of an initialization
-        return get_callee (TREE_OPERAND (t, 0));
-      }
-
-    std::cerr << tcn (t) << std::endl;
-    die ("get_callee: unhandled code");
-  }
-
   tree
   translate_parm_decl (tree decl, callgraph &cg)
   {
@@ -820,8 +760,8 @@ namespace
 
   void walk (tree src, tree t, callgraph &cg, unsigned level = 0);
 
-  void walk_call_expr (tree src, tree call_expr, tree fn, unsigned call_nesting,
-                       callgraph &cg, unsigned level);
+  void walk_call_expr (tree src, tree call_expr, tree fn, tree type,
+                       unsigned call_nesting, callgraph &cg, unsigned level);
 
   void
   walk_operand (tree src, tree t, unsigned i, callgraph &cg, unsigned level,
@@ -834,12 +774,12 @@ namespace
   }
 
   void
-  walk_call_expr_operand (tree src, tree call_expr, tree fn, unsigned i,
-                          unsigned call_nesting, callgraph &cg,
+  walk_call_expr_operand (tree src, tree call_expr, tree fn, tree type,
+                          unsigned i, unsigned call_nesting, callgraph &cg,
                           unsigned level, bool may_be_null = false)
   {
     if (tree ti = TREE_OPERAND (fn, i))
-      walk_call_expr (src, call_expr, ti, call_nesting, cg, level + 1);
+      walk_call_expr (src, call_expr, ti, type, call_nesting, cg, level + 1);
     else
       assert (may_be_null);
   }
@@ -896,9 +836,12 @@ namespace
     die ("walk_decl: unhandled code");
   }
 
+  void handle_call (tree src, tree call_expr, tree callee, tree type,
+                    unsigned call_nesting, callgraph &cg, unsigned level);
+
   void
-  walk_call_expr (tree src, tree call_expr, tree fn, unsigned call_nesting,
-                  callgraph &cg, unsigned level)
+  walk_call_expr (tree src, tree call_expr, tree fn, tree type,
+                  unsigned call_nesting, callgraph &cg, unsigned level)
   {
     if (dump_walk)
       {
@@ -908,32 +851,73 @@ namespace
         std::cerr << std::endl;
       }
 
+    tree callee = NULL_TREE;
     switch (static_cast <int> (TREE_CODE (fn)))
       {
       case COND_EXPR:
         // A condition doesn't influence what the callee will be, so walk it
         // normally. Dispatch to walk_call_expr for the then and else branches.
         walk_operand (src, fn, 0, cg, level + 1);
-        walk_call_expr_operand (src, call_expr, fn, 1, call_nesting, cg,
+        walk_call_expr_operand (src, call_expr, fn, type, 1, call_nesting, cg,
                                 level + 1);
-        walk_call_expr_operand (src, call_expr, fn, 2, call_nesting, cg,
+        walk_call_expr_operand (src, call_expr, fn, type, 2, call_nesting, cg,
                                 level + 1, true);
         return;
 
       case CALL_EXPR:
         if (tree fn2 = CALL_EXPR_FN (fn))
-          walk_call_expr (src, call_expr, fn2, call_nesting + 1, cg, level + 1);
+          walk_call_expr (src, call_expr, fn2, type, call_nesting + 1, cg,
+                          level + 1);
         return;
 
-      case TARGET_EXPR:
+      case NOP_EXPR:
+      case CONVERT_EXPR:
+        type = get_function_type (TREE_TYPE (fn));
+        return walk_call_expr_operand (src, call_expr, fn, type, 0,
+                                       call_nesting, cg, level + 1);
+
+      case INDIRECT_REF:         // One operand, an expression for a pointer
+      case ADDR_EXPR:            // Operand 0 is the address
+      case POINTER_PLUS_EXPR:    // The first operand is always a pointer
+      case ARRAY_REF:            // Operand 0 is the array
+        return walk_call_expr_operand (src, call_expr, fn, type, 0,
+                                       call_nesting, cg, level + 1);
+
+      case TARGET_EXPR:          // operand 0 is the target of an initialization
         walk (src, fn, cg, level + 1);
+        return walk_call_expr_operand (src, call_expr, fn, type, 0,
+                                       call_nesting, cg, level + 1);
+
+      default:
+        std::cerr << tcn (fn) << std::endl;
+        die ("walk_call_expr: unhandled code");
+
+      case PARM_DECL:
+      case VAR_DECL:
+      case FUNCTION_DECL:
+        callee = fn;
         break;
+
+      case COMPONENT_REF:
+        // Operand 1 is the field (a node of type FIELD_DECL).
+        callee = TREE_OPERAND (fn, 1);
+        break;
+
       }
 
-    callee c = get_callee (fn);
-    tree callee = c.fn;
+    return handle_call (src, call_expr, callee, type, call_nesting, cg,
+                        level);
+  }
+
+  void
+  handle_call (tree src, tree call_expr, tree callee, tree type,
+               unsigned call_nesting, callgraph &cg, unsigned level)
+  {
     assert (callee != NULL_TREE);
     assert (DECL_P (callee));
+
+    if (type == NULL_TREE)
+      type = get_function_type (TREE_TYPE (callee));
 
     tree translated_callee = TREE_CODE (callee) != PARM_DECL
                                 ? callee : translate_parm_decl (callee, cg);
@@ -955,15 +939,15 @@ namespace
       // itself, if it is a function type.)
       if (src != NULL_TREE)
         if (call_nesting > 0
-            || is_function_type (TREE_TYPE (c.type)))
+            || is_function_type (TREE_TYPE (type)))
           cg.add (src, get_result_decl (resdecl, cg));
     }
 
     // Types of callee arguments.
     std::vector <tree> callee_arg_types;
     {
-      assert (c.type != NULL_TREE);
-      for (tree a = TYPE_ARG_TYPES (c.type); a != NULL_TREE; a = TREE_CHAIN (a))
+      assert (type != NULL_TREE);
+      for (tree a = TYPE_ARG_TYPES (type); a != NULL_TREE; a = TREE_CHAIN (a))
         callee_arg_types.push_back (TREE_VALUE (a));
     }
 
@@ -1004,7 +988,7 @@ namespace
       {
       case CALL_EXPR:
         if (tree fn = CALL_EXPR_FN (t))
-          walk_call_expr (src, t, fn, 0, cg, level + 1);
+          walk_call_expr (src, t, fn, NULL_TREE, 0, cg, level + 1);
         return;
 
       case DECL_EXPR:
