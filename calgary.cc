@@ -836,79 +836,6 @@ namespace
     die ("walk_decl: unhandled code");
   }
 
-  void handle_call (tree src, tree call_expr, tree callee, tree type,
-                    unsigned call_nesting, callgraph &cg, unsigned level);
-
-  void
-  walk_call_expr (tree src, tree call_expr, tree fn, tree type,
-                  unsigned call_nesting, callgraph &cg, unsigned level)
-  {
-    if (dump_walk)
-      {
-        std::cerr << spaces (level) << "call:" << tcn (fn);
-        if (call_nesting > 0)
-          std::cerr << "[nesting " << call_nesting << "]";
-        std::cerr << std::endl;
-      }
-
-    tree callee = NULL_TREE;
-    switch (static_cast <int> (TREE_CODE (fn)))
-      {
-      case COND_EXPR:
-        // A condition doesn't influence what the callee will be, so walk it
-        // normally. Dispatch to walk_call_expr for the then and else branches.
-        walk_operand (src, fn, 0, cg, level + 1);
-        walk_call_expr_operand (src, call_expr, fn, type, 1, call_nesting, cg,
-                                level + 1);
-        walk_call_expr_operand (src, call_expr, fn, type, 2, call_nesting, cg,
-                                level + 1, true);
-        return;
-
-      case CALL_EXPR:
-        if (tree fn2 = CALL_EXPR_FN (fn))
-          walk_call_expr (src, call_expr, fn2, type, call_nesting + 1, cg,
-                          level + 1);
-        return;
-
-      case NOP_EXPR:
-      case CONVERT_EXPR:
-        type = get_function_type (TREE_TYPE (fn));
-        return walk_call_expr_operand (src, call_expr, fn, type, 0,
-                                       call_nesting, cg, level + 1);
-
-      case INDIRECT_REF:         // One operand, an expression for a pointer
-      case ADDR_EXPR:            // Operand 0 is the address
-      case POINTER_PLUS_EXPR:    // The first operand is always a pointer
-      case ARRAY_REF:            // Operand 0 is the array
-        return walk_call_expr_operand (src, call_expr, fn, type, 0,
-                                       call_nesting, cg, level + 1);
-
-      case TARGET_EXPR:          // operand 0 is the target of an initialization
-        walk (src, fn, cg, level + 1);
-        return walk_call_expr_operand (src, call_expr, fn, type, 0,
-                                       call_nesting, cg, level + 1);
-
-      default:
-        std::cerr << tcn (fn) << std::endl;
-        die ("walk_call_expr: unhandled code");
-
-      case PARM_DECL:
-      case VAR_DECL:
-      case FUNCTION_DECL:
-        callee = fn;
-        break;
-
-      case COMPONENT_REF:
-        // Operand 1 is the field (a node of type FIELD_DECL).
-        callee = TREE_OPERAND (fn, 1);
-        break;
-
-      }
-
-    return handle_call (src, call_expr, callee, type, call_nesting, cg,
-                        level);
-  }
-
   void
   handle_call (tree src, tree call_expr, tree callee, tree type,
                unsigned call_nesting, callgraph &cg, unsigned level)
@@ -973,6 +900,69 @@ namespace
 
         walk (src2, arg, cg, level + 1);
       }
+  }
+
+  void
+  walk_call_expr (tree src, tree call_expr, tree fn, tree type,
+                  unsigned call_nesting, callgraph &cg, unsigned level)
+  {
+    if (dump_walk)
+      {
+        std::cerr << spaces (level) << "call:" << tcn (fn);
+        if (call_nesting > 0)
+          std::cerr << "[nesting " << call_nesting << "]";
+        std::cerr << std::endl;
+      }
+
+    switch (static_cast <int> (TREE_CODE (fn)))
+      {
+      case COND_EXPR:
+        // A condition doesn't influence what the callee will be, so walk it
+        // normally. Dispatch to walk_call_expr for the then and else branches.
+        walk_operand (src, fn, 0, cg, level + 1);
+        walk_call_expr_operand (src, call_expr, fn, type, 1, call_nesting, cg,
+                                level + 1);
+        walk_call_expr_operand (src, call_expr, fn, type, 2, call_nesting, cg,
+                                level + 1, true);
+        return;
+
+      case CALL_EXPR:
+        if (tree fn2 = CALL_EXPR_FN (fn))
+          walk_call_expr (src, call_expr, fn2, type, call_nesting + 1, cg,
+                          level + 1);
+        return;
+
+      case NOP_EXPR:
+      case CONVERT_EXPR:
+        type = get_function_type (TREE_TYPE (fn));
+        return walk_call_expr_operand (src, call_expr, fn, type, 0,
+                                       call_nesting, cg, level + 1);
+
+      case INDIRECT_REF:         // One operand, an expression for a pointer
+      case ADDR_EXPR:            // Operand 0 is the address
+      case POINTER_PLUS_EXPR:    // The first operand is always a pointer
+      case ARRAY_REF:            // Operand 0 is the array
+        return walk_call_expr_operand (src, call_expr, fn, type, 0,
+                                       call_nesting, cg, level + 1);
+
+      case TARGET_EXPR:          // operand 0 is the target of an initialization
+        walk (src, fn, cg, level + 1);
+        return walk_call_expr_operand (src, call_expr, fn, type, 0,
+                                       call_nesting, cg, level + 1);
+
+      case PARM_DECL:
+      case VAR_DECL:
+      case FUNCTION_DECL:
+        return handle_call (src, call_expr, fn, type, call_nesting, cg, level);
+
+      case COMPONENT_REF:
+        // Operand 1 is the field (a node of type FIELD_DECL).
+        return handle_call (src, call_expr, TREE_OPERAND (fn, 1), type,
+                            call_nesting, cg, level);
+      }
+
+    std::cerr << tcn (fn) << std::endl;
+    die ("walk_call_expr: unhandled code");
   }
 
   void
