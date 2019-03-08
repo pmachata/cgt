@@ -758,7 +758,7 @@ namespace
     return NULL_TREE;
   }
 
-  void walk (tree src, tree t, callgraph &cg, unsigned level = 0);
+  void walk (tree src, tree t, callgraph &cg, unsigned level);
 
   void walk_call_expr (tree src, tree call_expr, tree fn, tree type,
                        unsigned call_nesting, callgraph &cg, unsigned level);
@@ -1208,10 +1208,9 @@ public:
   {
     assert (TREE_CODE (fn) == FUNCTION_DECL);
 
-    if (!true)
+    if (dump_walk)
       {
-        std::cerr << "\n- fn --------\n"
-                  << assembler_name (fn) << "(";
+        std::cerr << "fn " << assembler_name (fn) << "(";
 
         for (tree arg = DECL_ARGUMENTS (fn); arg != NULL_TREE;
              arg = TREE_CHAIN (arg))
@@ -1221,8 +1220,7 @@ public:
                       << (TREE_CHAIN (arg) ? ", " : "");
           }
 
-        std::cerr << ")" << std::endl
-                  << "-------------\n";
+        std::cerr << ")" << std::endl;
       }
 
 
@@ -1238,7 +1236,7 @@ public:
         tree resdecl = DECL_RESULT (fn);
         m_fab.track_result_decl (DECL_CONTEXT (resdecl), resdecl);
 
-        walk (NULL_TREE, body, cg);
+        walk (NULL_TREE, body, cg, 1);
         cg.propagate ();
         m_cg.merge (std::move (cg));
       }
