@@ -836,6 +836,9 @@ namespace
     die ("walk_decl: unhandled code");
   }
 
+  void handle_call_args (tree call_expr, tree callee, tree type, callgraph &cg,
+                         unsigned level);
+
   void
   handle_call (tree src, tree call_expr, tree callee, tree type,
                unsigned call_nesting, callgraph &cg, unsigned level)
@@ -880,6 +883,17 @@ namespace
             || is_function_type (TREE_TYPE (type)))
           cg.add (src, get_result_decl (resdecl, cg));
     }
+
+    handle_call_args (call_expr, callee, type, cg, level);
+  }
+
+  void
+  handle_call_args (tree call_expr, tree callee, tree type, callgraph &cg,
+                    unsigned level)
+  {
+    if (type == NULL_TREE)
+      type = get_function_type (TREE_TYPE (callee));
+    assert (type != NULL_TREE);
 
     // Types of callee arguments.
     std::vector <tree> callee_arg_types;
@@ -939,8 +953,11 @@ namespace
 
       case CALL_EXPR:
         if (tree fn2 = CALL_EXPR_FN (fn))
-          walk_call_expr (src, call_expr, fn2, type, call_nesting + 1, cg,
-                          level + 1);
+          {
+            handle_call_args (call_expr, fn2, type, cg, level + 2);
+            walk_call_expr (src, fn, fn2, type, call_nesting + 1, cg,
+                            level + 1);
+          }
         return;
 
       case NOP_EXPR:

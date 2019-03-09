@@ -1,0 +1,7 @@
+F ./cases/call_call_args.c
+1803 (5) @var foo()::(ret) rv 1799
+1795 (3) @decl fn3
+1797 (4) @decl fn4
+1799 (5) @decl foo
+1801 (7) call_cond_expr_1 1803 1795 1797 1799
+---
