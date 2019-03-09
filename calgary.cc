@@ -30,13 +30,28 @@ namespace
   constexpr bool dump_add = false;
   constexpr bool dump_fab = false;
 
-  __attribute__ ((unused)) const char *
+  const char *
   tcn (tree t)
   {
     if (t == NULL_TREE)
       return "NULL_TREE";
     else
       return get_tree_code_name (TREE_CODE (t));
+  }
+
+  std::string
+  format (const char *fmt, ...)
+  {
+    va_list ap;
+    va_start(ap, fmt);
+
+    char *buf = nullptr;
+    vasprintf (&buf, fmt, ap);
+    std::string ret {buf};
+    std::free (buf);
+
+    va_end(ap);
+    return ret;
   }
 
   // Resolve typedefs and cv-qualifiers.
@@ -848,7 +863,8 @@ namespace
 
     if (dump_walk)
       {
-        std::cerr << spaces (level) << "handle_call:" << tcn (callee);
+        std::cerr << spaces (level) << "handle_call:" << tcn (callee)
+                  << (src ? format (" (src:%s) ", tcn (src)) : ""s);
         if (call_nesting > 0)
           std::cerr << "[nesting " << call_nesting << "]";
         std::cerr << std::endl;
@@ -933,7 +949,8 @@ namespace
   {
     if (dump_walk)
       {
-        std::cerr << spaces (level) << "call:" << tcn (fn);
+        std::cerr << spaces (level) << "call:" << tcn (fn)
+                  << (src ? format (" (src:%s) ", tcn (src)) : ""s);
         if (call_nesting > 0)
           std::cerr << "[nesting " << call_nesting << "]";
         std::cerr << std::endl;
@@ -998,7 +1015,9 @@ namespace
   walk (tree src, tree t, callgraph &cg, unsigned level)
   {
     if (dump_walk)
-      std::cerr << spaces (level) << tcn (t) << std::endl;
+      std::cerr << spaces (level) << tcn (t)
+                << (src ? format (" (src:%s)", tcn (src)) : ""s)
+                << std::endl;
 
     if (CONSTANT_CLASS_P (t))
       return;
