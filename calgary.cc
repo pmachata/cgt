@@ -911,7 +911,7 @@ namespace
         // And then when foo ends up calling through varargs, do:
         //       foo -> foo()::<varargs>
         // etc. for assignment or parameter passing.
-        tree src2 = NULL;
+        tree src2 = NULL_TREE;
         if (i < callee_arg_types.size ())
           {
             tree callee_arg_type = callee_arg_types[i];
