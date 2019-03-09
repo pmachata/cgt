@@ -843,6 +843,14 @@ namespace
     assert (callee != NULL_TREE);
     assert (DECL_P (callee));
 
+    if (dump_walk)
+      {
+        std::cerr << spaces (level) << "handle_call:" << tcn (callee);
+        if (call_nesting > 0)
+          std::cerr << "[nesting " << call_nesting << "]";
+        std::cerr << std::endl;
+      }
+
     if (type == NULL_TREE)
       type = get_function_type (TREE_TYPE (callee));
     assert (type != NULL_TREE);
@@ -898,7 +906,10 @@ namespace
               src2 = cg.decl_fab.get (i, callee_arg_type, callee);
           }
 
-        walk (src2, arg, cg, level + 1);
+        if (dump_walk)
+          std::cerr << spaces (level + 1) << "arg:" << i << "/" << nargs
+                    << std::endl;
+        walk (src2, arg, cg, level + 2);
       }
   }
 
@@ -953,12 +964,13 @@ namespace
       case PARM_DECL:
       case VAR_DECL:
       case FUNCTION_DECL:
-        return handle_call (src, call_expr, fn, type, call_nesting, cg, level);
+        return handle_call (src, call_expr, fn, type, call_nesting, cg,
+                            level + 1);
 
       case COMPONENT_REF:
         // Operand 1 is the field (a node of type FIELD_DECL).
         return handle_call (src, call_expr, TREE_OPERAND (fn, 1), type,
-                            call_nesting, cg, level);
+                            call_nesting, cg, level + 1);
       }
 
     std::cerr << tcn (fn) << std::endl;
