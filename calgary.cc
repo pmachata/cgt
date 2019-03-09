@@ -961,7 +961,7 @@ namespace
       case COND_EXPR:
         // A condition doesn't influence what the callee will be, so walk it
         // normally. Dispatch to walk_call_expr for the then and else branches.
-        walk_operand (src, fn, 0, cg, level + 1);
+        walk_operand (NULL_TREE, fn, 0, cg, level + 1);
         walk_call_expr_operand (src, call_expr, fn, type, 1, call_nesting, cg,
                                 level + 1);
         walk_call_expr_operand (src, call_expr, fn, type, 2, call_nesting, cg,

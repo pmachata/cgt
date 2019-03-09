@@ -1,0 +1,26 @@
+F ./cases/call_call_cond_expr.c
+1802 (6) @var fn2()::(ret) rv 1801 1799
+1805 (10) @var fn3()::(ret) rv 1804 1801
+1808 (14) @var fn4()::(ret) rv 1807 1804
+1811 (19) @static @var call_cond_expr_callee_1()::(ret) rv 1810 1813
+1813 (19) @static @var call_cond_expr_callee_1()::(arg:0)::(ret) rv 1812
+1816 (24) @static @var call_cond_expr_callee_1a()::(ret) rv 1815 1818
+1818 (24) @static @var call_cond_expr_callee_1a()::(arg:0)::(ret) rv 1817
+1821 (29) @static @var call_cond_expr_callee_2()::(ret) rv 1820 1824
+1823 (29) @static @var call_cond_expr_callee_2()::(arg:0)::(ret) rv 1822
+1824 (29) @static @var call_cond_expr_callee_2()::(arg:0)::(ret)::(ret) rv 1823
+1833 (14) @var fn4()::(ret)::(ret) rv 1808
+1799 (5) @decl fn1
+1801 (6) fn2
+1812 (19) @static @var call_cond_expr_callee_1()::(arg:0) arg 0 1810 1805 1833
+1817 (24) @static @var call_cond_expr_callee_1a()::(arg:0) arg 0 1815 1801
+1822 (29) @static @var call_cond_expr_callee_2()::(arg:0) arg 0 1820 1804
+1804 (10) fn3
+1807 (14) fn4
+1810 (19) @static call_cond_expr_callee_1 1812
+1815 (24) @static call_cond_expr_callee_1a 1817
+1820 (29) @static call_cond_expr_callee_2 1823 1822
+1826 (35) @static call_cond_expr_dispatch
+1830 (40) call_cond_expr_1 1808 1811 1804 1807 1810
+1835 (52) call_cond_expr_2 1816 1821 1815 1820 1826
+---
