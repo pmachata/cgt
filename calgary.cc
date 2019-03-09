@@ -865,6 +865,8 @@ namespace
       // Inside assignment expressions, add an edge to the outermost call
       // expression of the nesting. (Or if there is no nesting, just the callee
       // itself, if it is a function type.)
+      // Note that resdecl now has all the ::(ret)'s tacked onto it, so it does
+      // actually reference the outermost call.
       if (src != NULL_TREE)
         if (call_nesting > 0
             || is_function_type (TREE_TYPE (type)))
